@@ -82,7 +82,7 @@
     <div class="top-header">
         <div>
             <h1 class="page-title">Solicitudes</h1>
-            <div class="page-subtitle">Lista de visitas registradas</div>
+            <div class="page-subtitle">Solicitudes activas sin reporte enviado</div>
         </div>
         <div>
             <a href="${pageContext.request.contextPath}/nueva-solicitud" class="btn-new-request">
@@ -93,29 +93,29 @@
 
     <div class="requests-grid">
         <c:forEach var="sol" items="${solicitudes}">
-        <div class="request-card">
-            <div class="company-banner">
-                <h2><c:out value="${sol.empresa}"/></h2>
-            </div>
+            <div class="request-card">
+                <div class="company-banner">
+                    <h2><c:out value="${sol.empresa}"/></h2>
+                </div>
 
-            <div class="card-company">
-                <span><c:out value="${sol.empresa}"/>, <c:out value="${sol.direccionEmpresa}"/></span>
-                <i class="bi bi-geo-alt" style="font-size: 0.95rem; color: #1e3a5f;"></i>
-            </div>
+                <div class="card-company">
+                    <span><c:out value="${sol.empresa}"/>, <c:out value="${sol.direccionEmpresa}"/></span>
+                    <i class="bi bi-geo-alt" style="font-size: 0.95rem; color: #1e3a5f;"></i>
+                </div>
 
-            <div class="card-footer-info">
-                <span class="card-id">ID: <c:out value="${sol.idVisita}"/> · <c:out value="${sol.estadoLegible}"/></span>
-                <a href="${pageContext.request.contextPath}/detalle-solicitud?id=${sol.idVisita}" class="btn-details">
-                    <i class="bi bi-eye"></i> Detalles
-                </a>
+                <div class="card-footer-info">
+                    <span class="card-id">ID: <c:out value="${sol.idVisita}"/> · <c:out value="${sol.estadoLegible}"/></span>
+                    <a href="${pageContext.request.contextPath}/detalle-solicitud?id=${sol.idVisita}" class="btn-details">
+                        <i class="bi bi-eye"></i> Detalles
+                    </a>
+                </div>
             </div>
-        </div>
         </c:forEach>
         <c:if test="${empty solicitudes}">
-        <div style="grid-column: 1 / -1;" class="alert alert-light border text-secondary fw-semibold p-4 text-center rounded-3">
-            <i class="bi bi-inbox fs-3 d-block mb-2 text-muted"></i>
-            Aún no has creado solicitudes.
-        </div>
+            <div style="grid-column: 1 / -1;" class="alert alert-light border text-secondary fw-semibold p-4 text-center rounded-3">
+                <i class="bi bi-inbox fs-3 d-block mb-2 text-muted"></i>
+                No tienes solicitudes activas. Las solicitudes con reporte enviado se encuentran en el apartado Reportes.
+            </div>
         </c:if>
     </div>
 
