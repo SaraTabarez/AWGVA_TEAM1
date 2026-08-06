@@ -1,141 +1,75 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
-<%
-    // Recuperar el índice de la solicitud
-    String indexParam = request.getParameter("index");
-    int indexNum = 0;
-    if (indexParam != null) {
-        try {
-            indexNum = Integer.parseInt(indexParam);
-        } catch (NumberFormatException e) {
-            indexNum = 0;
-        }
-    }
-%>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<c:set var="ctx" value="${pageContext.request.contextPath}"/>
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Carta Responsiva Enviada Correctamente</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Carta responsiva enviada</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
     <style>
-        :root {
-            --bg-body: #a2b1c6;
-            --color-success: #48cd8e;
-            --color-success-hover: #3db87d;
-        }
-
         * {
-            margin: 0;
-            padding: 0;
             box-sizing: border-box;
-            font-family: 'Inter', sans-serif;
         }
-
         body {
-            background-color: var(--bg-body);
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
+            margin: 0;
+            background: #a9bbcf;
+            font-family: "Segoe UI", Arial, sans-serif;
+            color: #111;
         }
-
-        /* Tarjeta Blanca Centrada */
-        .success-card {
-            background-color: #ffffff;
-            width: 100%;
-            max-width: 680px;
-            padding: 60px 40px;
-            border-radius: 6px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+        .screen {
+            min-height: 100vh;
+            margin: 8px 18px;
+            background: #fff;
+            display: grid;
+            place-items: center;
             text-align: center;
+            padding: 30px;
         }
-
-        /* Contenedor del ícono Verde */
-        .icon-box {
-            border: 2px solid var(--color-success);
-            border-radius: 12px;
-            padding: 18px 26px;
-            margin-bottom: 35px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+        .icon {
+            font-size: 4.8rem;
+            color: #55c993;
+            line-height: 1;
         }
-
-        .icon-box i {
-            font-size: 42px;
-            color: var(--color-success);
+        .title {
+            font-size: .86rem;
+            font-weight: 900;
+            margin: 15px 0 24px;
         }
-
-        /* Título */
-        h1 {
-            font-size: 1.5rem;
-            font-weight: 800;
-            color: #000000;
-            margin-bottom: 20px;
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
-            line-height: 1.3;
-        }
-
-        /* Texto explicativo */
-        p {
-            font-size: 0.95rem;
-            color: #333333;
-            margin-bottom: 35px;
+        .text {
+            font-size: .74rem;
+            font-weight: 650;
+            color: #5e6369;
             line-height: 1.5;
         }
-
-        /* Botón Entendido */
-        .btn-understood {
-            background-color: var(--color-success);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            padding: 12px 38px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background-color 0.2s ease, transform 0.1s ease;
-        }
-
-        .btn-understood:hover {
-            background-color: var(--color-success-hover);
-        }
-
-        .btn-understood:active {
-            transform: scale(0.98);
+        .btn {
+            margin-top: 28px;
+            display: inline-block;
+            background: #55c993;
+            color: #fff;
+            border-radius: 6px;
+            padding: 11px 30px;
+            text-decoration: none;
+            font-weight: 800;
+            font-size: .75rem;
+            box-shadow: 0 3px 7px rgba(0,0,0,.12);
         }
     </style>
 </head>
 <body>
-
-<div class="success-card">
-    <div class="icon-box">
-        <i class="fa-solid fa-check"></i>
+<main class="screen">
+    <div>
+        <div class="icon">
+            <i class="bi bi-check-square"></i>
+        </div>
+        <div class="title">CARTA RESPONSIVA ENVIADA CORRECTAMENTE</div>
+        <div class="text">
+            La carta responsiva ha sido enviada correctamente.<br>
+            Espera la respuesta del departamento al que ha sido enviado.
+        </div>
+        <a class="btn" href="${ctx}/detalle-solicitud?id=${param.id}">Entendido</a>
     </div>
-
-    <h1>CARTA RESPONSIVA ENVIADA<br>CORRECTAMENTE</h1>
-
-    <p>
-        La carta responsiva ha sido enviada correctamente.<br>
-        Espere la respuesta del departamento al que ha sido enviado.
-    </p>
-
-    <button type="button" class="btn-understood" onclick="volverADetalle()">Entendido</button>
-</div>
-
-<script>
-    function volverADetalle() {
-        window.location.href = 'solicitud-detalle.jsp?index=<%= indexNum %>';
-    }
-</script>
-
+</main>
 </body>
 </html>

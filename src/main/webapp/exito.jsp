@@ -1,102 +1,75 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
-<%
-    // Recuperamos el índice por si viene de la vista previa para no perder la solicitud activa
-    String indexParam = request.getParameter("index");
-    String urlDetalle = "solicitud-detalle.jsp";
-    if (indexParam != null && !indexParam.trim().isEmpty()) {
-        urlDetalle += "?index=" + indexParam;
-    }
-%>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<c:set var="ctx" value="${pageContext.request.contextPath}"/>
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Solicitud Enviada Correctamente</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Solicitud enviada</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
     <style>
+        * {
+            box-sizing: border-box;
+        }
         body {
             margin: 0;
-            padding: 0;
-            background-color: #A6B5C3;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            font-family: Arial, sans-serif;
+            background: #a9bbcf;
+            font-family: "Segoe UI", Arial, sans-serif;
+            color: #111;
         }
-        .success-panel {
-            background-color: white;
-            width: 700px;
-            height: 500px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            padding: 60px;
-            box-sizing: border-box;
-            border-radius: 5px;
-            box-shadow: 0px 4px 15px rgba(0,0,0,0.1);
-        }
-        .icon-container {
-            border: 2px solid #55CC8A;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 40px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        .checkmark {
-            font-size: 50px;
-            color: #55CC8A;
-            font-weight: bold;
-        }
-        h1 {
-            font-size: 24px;
-            font-weight: bold;
-            color: black;
-            margin: 0 0 25px 0;
+        .screen {
+            min-height: 100vh;
+            margin: 8px 18px;
+            background: #fff;
+            display: grid;
+            place-items: center;
             text-align: center;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            padding: 30px;
         }
-        p {
-            font-size: 16px;
-            color: black;
-            margin: 0 0 45px 0;
-            text-align: center;
+        .icon {
+            font-size: 4.8rem;
+            color: #55c993;
+            line-height: 1;
+        }
+        .title {
+            font-size: .86rem;
+            font-weight: 900;
+            margin: 15px 0 24px;
+        }
+        .text {
+            font-size: .74rem;
+            font-weight: 650;
+            color: #5e6369;
             line-height: 1.5;
         }
-        .understood-button {
-            background-color: #55CC8A;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            padding: 14px 35px;
-            font-size: 18px;
-            cursor: pointer;
-            text-transform: capitalize;
-            transition: background-color 0.3s;
-            text-decoration: none;
+        .btn {
+            margin-top: 28px;
             display: inline-block;
-        }
-        .understood-button:hover {
-            background-color: #44B878;
+            background: #55c993;
+            color: #fff;
+            border-radius: 6px;
+            padding: 11px 30px;
+            text-decoration: none;
+            font-weight: 800;
+            font-size: .75rem;
+            box-shadow: 0 3px 7px rgba(0,0,0,.12);
         }
     </style>
 </head>
 <body>
-<div class="success-panel">
-    <div class="icon-container">
-        <span class="checkmark">&#10003;</span>
+<main class="screen">
+    <div>
+        <div class="icon">
+            <i class="bi bi-check-square"></i>
+        </div>
+        <div class="title">SOLICITUD ENVIADA CORRECTAMENTE</div>
+        <div class="text">
+            La solicitud ha sido enviada correctamente.<br>
+            Espera la respuesta del departamento al que ha sido enviado.
+        </div>
+        <a class="btn" href="${ctx}/detalle-solicitud?id=${param.id}">Entendido</a>
     </div>
-    <h1>SOLICITUD ENVIADA CORRECTAMENTE</h1>
-    <p>
-        La solicitud ha sido enviado correctamente.<br>
-        Espere la respuesta del departamento al que ha sido enviado
-    </p>
-
-    <!-- Redirección directa a la pantalla de detalles -->
-    <a href="<%= urlDetalle %>" class="understood-button">Entendido</a>
-</div>
+</main>
 </body>
 </html>
