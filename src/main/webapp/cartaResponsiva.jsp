@@ -1,328 +1,429 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
-<%
-    // Recuperar el índice de la solicitud para mantener la navegación
-    String indexParam = request.getParameter("index");
-    int indexNum = 0;
-    if (indexParam != null) {
-        try {
-            indexNum = Integer.parseInt(indexParam);
-        } catch (NumberFormatException e) {
-            indexNum = 0;
-        }
-    }
-%>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<c:set var="ctx" value="${pageContext.request.contextPath}"/>
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Carta Responsiva Visitas Académicas</title>
-    <!-- Librería JavaScript para convertir HTML a PDF -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Subir carta responsiva con firmas</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
     <style>
         * {
             box-sizing: border-box;
-            margin: 0;
-            padding: 0;
         }
 
         body {
-            background-color: #A6B5C3;
-            font-family: Arial, sans-serif;
-            display: flex;
-            justify-content: center;
-            padding: 40px 20px;
+            margin: 0;
+            background: #a9bbcf;
+            font-family: "Segoe UI", Arial, sans-serif;
+            color: #1e3a5f;
+        }
+
+        .main {
+            margin-left: 240px;
             min-height: 100vh;
+            padding: 18px;
         }
 
-        .document-container {
-            background-color: #FFFFFF;
-            width: 100%;
-            max-width: 1100px;
-            padding: 60px 80px;
+        .panel {
+            max-width: 1050px;
+            margin: auto;
+            background: #fff;
+            min-height: calc(100vh - 36px);
+            padding: 28px 34px;
+        }
+
+        .stepper {
+            display: flex;
+            justify-content: space-between;
             position: relative;
-            box-shadow: 0px 4px 15px rgba(0,0,0,0.1);
+            margin-bottom: 35px;
         }
 
-        /* Botón X de cerrar */
-        .close-btn {
+        .stepper:before {
+            content: "";
             position: absolute;
-            top: 20px;
-            right: 25px;
-            font-size: 24px;
-            color: #333;
-            cursor: pointer;
+            left: 4%;
+            right: 4%;
+            top: 15px;
+            height: 3px;
+            background: #c9c4bb;
         }
 
-        /* Encabezado: Descargar */
-        .download-section {
-            display: inline-flex;
-            align-items: center;
-            font-size: 16px;
-            font-weight: bold;
-            margin-bottom: 20px;
-            cursor: pointer;
-            user-select: none;
-            color: #000;
-        }
-
-        .download-section:hover {
-            color: #0056b3;
-        }
-
-        .download-icon {
-            width: 24px;
-            height: 24px;
-            margin-right: 10px;
-        }
-
-        /* Textos del documento */
-        .doc-title {
+        .step {
+            width: 11%;
             text-align: center;
-            font-size: 16px;
-            font-weight: bold;
-            margin-bottom: 20px;
+            z-index: 1;
+            font-size: .58rem;
         }
 
-        .doc-date {
-            text-align: right;
-            font-size: 14px;
-            margin-bottom: 40px;
+        .circle {
+            width: 31px;
+            height: 31px;
+            border-radius: 50%;
+            margin: auto auto 5px;
+            background: #c9c4bb;
+            color: #fff;
+            display: grid;
+            place-items: center;
+            font-size: .8rem;
         }
 
-        .recipient {
-            font-size: 14px;
-            font-weight: bold;
-            line-height: 1.5;
-            margin-bottom: 30px;
+        .done .circle,
+        .active .circle {
+            background: #f59120;
         }
 
-        .body-text {
-            font-size: 14px;
-            line-height: 1.6;
-            text-align: justify;
-            margin-bottom: 15px;
+        .title-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
         }
 
-        .bullet-list {
-            font-size: 14px;
-            line-height: 1.6;
-            margin-bottom: 15px;
-            padding-left: 40px;
+        .title-row h2 {
+            font-size: 1rem;
+            margin: 0 0 3px;
         }
 
-        .bullet-list li {
-            margin-bottom: 5px;
+        .muted {
+            font-size: .7rem;
+            color: #7c8795;
         }
 
-        .italic-text {
-            font-size: 14px;
-            font-style: italic;
-            text-align: justify;
-            margin-bottom: 30px;
-            line-height: 1.6;
+        .drop {
+            border: 2px dashed #f3a24e;
+            min-height: 190px;
+            margin-top: 24px;
+            display: grid;
+            place-items: center;
+            text-align: center;
+            cursor: pointer;
         }
 
-        /* Tabla de Alumnos */
+        .browse {
+            background: #1e3a5f;
+            color: #fff;
+            border: 0;
+            border-radius: 5px;
+            padding: 10px 36px;
+            font-weight: 800;
+        }
+
+        .drop strong {
+            display: block;
+            margin-top: 15px;
+            font-size: .8rem;
+        }
+
+        .drop small {
+            display: block;
+            color: #8a93a0;
+            margin-top: 7px;
+        }
+
+        .table-wrap {
+            margin-top: 18px;
+            border: 1px solid #d7dee6;
+            border-radius: 6px;
+            overflow: hidden;
+            display: none;
+        }
+
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 10px;
-        }
-
-        th, td {
-            border: 1px solid black;
-            padding: 12px;
-            text-align: center;
-            font-size: 14px;
+            font-size: .72rem;
         }
 
         th {
-            font-weight: bold;
-            background-color: transparent;
+            background: #1e3a5f;
+            color: #fff;
+            padding: 10px;
+            border-right: 1px solid #f59120;
         }
 
         td {
-            height: 40px;
+            padding: 12px;
+            text-align: center;
+            border-bottom: 1px solid #e5e7eb;
         }
 
-        /* Botón verde para agregar */
-        .add-row-container {
-            text-align: right;
-            margin-top: 15px;
+        .badge {
+            background: #1e3a5f;
+            color: #fff;
+            border-radius: 10px;
+            padding: 3px 9px;
+            font-size: .58rem;
         }
 
-        .add-btn {
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            font-size: 24px;
-            font-weight: bold;
+        .icon-btn {
+            border: 0;
+            background: transparent;
+            color: #1e3a5f;
             cursor: pointer;
-            box-shadow: 0px 4px 6px rgba(0,0,0,0.2);
-            transition: background-color 0.3s, transform 0.1s;
-            display: inline-flex;
-            justify-content: center;
-            align-items: center;
+            margin: 0 3px;
         }
 
-        .add-btn:hover {
-            background-color: #45a049;
+        .actions {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 25px;
         }
 
-        .add-btn:active {
-            transform: scale(0.95);
+        .btn {
+            border: 0;
+            border-radius: 5px;
+            padding: 10px 28px;
+            background: #1e3a5f;
+            color: #fff;
+            text-decoration: none;
+            font-weight: 800;
+            cursor: pointer;
+        }
+
+        .btn:disabled {
+            opacity: .45;
+            cursor: not-allowed;
+        }
+
+        .error {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 10px 14px;
+            margin: 12px 0;
+        }
+
+        .existing {
+            background: #e8f4ff;
+            border: 1px solid #b7d9f5;
+            padding: 10px 14px;
+            margin: 12px 0;
+            font-size: .75rem;
+        }
+
+        @media(max-width: 800px) {
+            .main {
+                margin-left: 0;
+            }
+
+            .stepper {
+                overflow: auto;
+            }
+
+            .step {
+                min-width: 90px;
+            }
+
+            .panel {
+                padding: 20px 14px;
+            }
         }
     </style>
 </head>
 <body>
+<jsp:include page="Layout/sidebar.jsp"/>
 
-<div class="document-container" id="pdfContent">
-    <!-- X Cerrar (Oculto al descargar) -->
-    <div class="close-btn no-print" id="btnClose">&#x2715;</div>
+<main class="main">
+    <section class="panel">
+        <!-- Stepper -->
+        <div class="stepper">
+            <div class="step done">
+                <div class="circle"><i class="bi bi-file-earmark"></i></div>
+                Solicitud creada
+            </div>
+            <div class="step done">
+                <div class="circle"><i class="bi bi-file-earmark-check"></i></div>
+                Solicitud enviada
+            </div>
+            <div class="step done">
+                <div class="circle"><i class="bi bi-patch-check"></i></div>
+                Solicitud aceptada
+            </div>
+            <div class="step active">
+                <div class="circle"><i class="bi bi-file-text"></i></div>
+                Carta enviada
+            </div>
+            <div class="step">
+                <div class="circle"><i class="bi bi-patch-check"></i></div>
+                Carta aceptada
+            </div>
+            <div class="step">
+                <div class="circle"><i class="bi bi-truck"></i></div>
+                Visita
+            </div>
+            <div class="step">
+                <div class="circle"><i class="bi bi-images"></i></div>
+                Reporte enviado
+            </div>
+            <div class="step">
+                <div class="circle"><i class="bi bi-check2"></i></div>
+                Reporte aceptado
+            </div>
+        </div>
 
-    <!-- Descargar para Continuar (Oculto al descargar) -->
-    <div class="download-section no-print" id="btnDescargar">
-        <svg class="download-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="7 10 12 15 17 10"></polyline>
-            <line x1="12" y1="15" x2="12" y2="3"></line>
-        </svg>
-        Descargar para Continuar
-    </div>
+        <!-- Header -->
+        <div class="title-row">
+            <div>
+                <h2>Imágenes y Documentos</h2>
+                <div class="muted">Adjunta la carta responsiva firmada exclusivamente en formato PDF</div>
+            </div>
+            <div class="muted" id="counter">
+                0 de 1 archivo<br>0 Bytes de 10 MB
+            </div>
+        </div>
 
-    <div class="doc-title">
-        CARTA RESPONSIVA VISITAS ACADÉMICAS
-    </div>
+        <!-- Alertas -->
+        <c:if test="${not empty error}">
+            <div class="error"><c:out value="${error}"/></div>
+        </c:if>
 
-    <div class="doc-date">
-        Emiliano Zapata, Morelos a _______ de _______________________ del 20_______.
-    </div>
+        <c:if test="${not empty documentoExistente}">
+            <div class="existing">
+                <i class="bi bi-info-circle"></i> Ya existe una carta responsiva con firmas:
+                <strong><c:out value="${documentoExistente.nombreArchivo}"/></strong>.
+                Al enviar otra, será reemplazada.
+            </div>
+        </c:if>
 
-    <div class="recipient">
-        UNIVERSIDAD TECNOLÓGICA EMILIANO ZAPATA<br>
-        DEL ESTADO DE MORELOS.<br>
-        P R E S E N T E
-    </div>
+        <!-- Formulario de subida -->
+        <form id="uploadForm" action="${ctx}/docente/subir-documento" method="post" enctype="multipart/form-data">
+            <input type="hidden" name="csrfToken" value="<c:out value='${sessionScope.csrfToken}'/>">
+            <input type="hidden" name="idVisita" value="${expediente.idVisita}">
+            <input type="hidden" name="tipo" value="CARTA_RESPONSIVA">
 
-    <p class="body-text">
-        Por este medio, los suscritos estudiantes del programa educativo de ___________________________________________________________ y bajo protesta de decir verdad, confirmamos nuestra participación en la visita a " ___________________________________________________ ", a celebrarse los días _______ y _______ de _______________________ de 20_______, en _______________________________________; bajo el programa anexo al presente documento.
-    </p>
+            <label class="drop" for="archivo">
+                <div>
+                    <button class="browse" type="button" onclick="document.getElementById('archivo').click()">Explorar</button>
+                    <strong>Arrastra el PDF aquí o selecciónalo</strong>
+                    <small>PDF · Máx. 10 MB por archivo</small>
+                </div>
+            </label>
+            <input id="archivo" name="archivo" type="file" accept="application/pdf,.pdf" hidden required>
 
-    <p class="body-text">
-        Conocedores que la actividad se documentará como una visita de estudio de la Universidad Tecnológica Emiliano Zapata del Estado de Morelos (UTEZ) y debido al horario del encuentro ( ________ a ________ hrs.), declaramos que los traslados y gastos derivados a nuestra participación en el evento antes mencionado los realizaremos con nuestros propios medios y recursos, asimismo que conocemos el alcance del seguro de la empresa que se contrató para el traslado.
-    </p>
+            <!-- Tabla del archivo cargado -->
+            <div class="table-wrap" id="tableWrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Tipo</th>
+                        <th>Nombre</th>
+                        <th>Tamaño</th>
+                        <th>Fecha</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>
+                            <i class="bi bi-file-earmark-pdf"></i><br>Carta responsiva
+                        </td>
+                        <td id="fileName"></td>
+                        <td id="fileSize"></td>
+                        <td id="fileDate"></td>
+                        <td><span class="badge">Borrador</span></td>
+                        <td>
+                            <button class="icon-btn" type="button" onclick="limpiar()" title="Eliminar">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                            <a class="icon-btn" id="download" download title="Descargar">
+                                <i class="bi bi-download"></i>
+                            </a>
+                            <a class="icon-btn" id="preview" target="_blank" title="Vista previa">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
 
-    <p class="body-text">
-        Derivado de lo anterior nos obligamos a:
-    </p>
+            <!-- Botones de Acción -->
+            <div class="actions">
+                <a class="btn" href="${ctx}/detalle-solicitud?id=${expediente.idVisita}">Anterior</a>
+                <button class="btn" id="send" type="submit" disabled>Enviar</button>
+            </div>
+        </form>
+    </section>
+</main>
 
-    <ul class="bullet-list">
-        <li>Respetar las reglas impuestas tanto por la UTEZ, como por los organizadores de la salida.</li>
-        <li>Buscar siempre estar informedo de las actividades grupales programadas.</li>
-        <li>Abstenerme de cualquier conducta ilegal o inapropiada que pueda denigrar la buena imagen de la UTEZ o que sea perjudicial para sus objetivos y;</li>
-        <li>No poner en riesgo mi integridad física ni la de mis compañeros.</li>
-    </ul>
-
-    <p class="body-text">
-        Estamos de acuerdo en asumir la responsabilidad como ciudadanos y como miembros de la comunidad universitaria, por lo que nos obligamos a realizar las siguientes acciones:
-    </p>
-
-    <p class="body-text">
-        Adoptar las medidas de seguridad correspondientes de la actividad que desempeñemos en cualquier lugar, tales como uso adecuado de equipo de protección personal, higiene respiratoria, lavado de manos, etc. Así como, seguir los protocolos de prevención emitidos por la Universidad o institución donde esté realizando la actividad de visita de estudio, dentro o fuera del Estado de Morelos.
-    </p>
-
-    <p class="body-text">
-        Asimismo, manifestamos que la actividad descrita la realizamos bajo nuestra responsabilidad, por lo que deslindamos a la UTEZ y a su personal docente y administrativo de toda responsabilidad en caso de que se presente alguna consecuencia que resulte de la falta de acción, omisión o incumplimiento en la que hayamos incurrido con respecto a los puntos descritos anteriormente, así como del pago de daños y perjuicios y cualquier acción legal, en el entendido que mediante las acciones anteriores la Universidad está protegiendo nuestra integridad y la de los demás miembros de la comunidad universitaria.
-    </p>
-
-    <p class="italic-text">
-        He leído este documento, entiendo completamente sus términos y por medio del mismo eximo y libero de toda responsabilidad a la UTEZ y a terceros, y me hago único y absoluto responsable de mi persona, en los términos del presente, mismo que suscribo libre y voluntariamente.
-    </p>
-
-    <table id="alumnosTable">
-        <thead>
-        <tr>
-            <th style="width: 5%;">No.</th>
-            <th style="width: 45%;">Nombre</th>
-            <th style="width: 25%;">Grado y Grupo</th>
-            <th style="width: 25%;">Firma</th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr>
-            <td>1</td>
-            <td></td>
-            <td></td>
-            <td></td>
-        </tr>
-        </tbody>
-    </table>
-
-    <!-- Botón + para agregar filas (Oculto al descargar) -->
-    <div class="add-row-container no-print">
-        <button class="add-btn" id="btnAgregarFila" title="Agregar alumno">+</button>
-    </div>
-
-</div>
-
-<!-- SCRIPT JS CORREGIDO CON REDIRECCIÓN -->
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const btnAgregarFila = document.getElementById('btnAgregarFila');
-        const btnDescargar = document.getElementById('btnDescargar');
-        const btnClose = document.getElementById('btnClose');
-        const tbody = document.querySelector('#alumnosTable tbody');
+    const input = document.getElementById('archivo');
+    const wrap = document.getElementById('tableWrap');
+    const send = document.getElementById('send');
+    const counter = document.getElementById('counter');
+    let objectUrl = null;
 
-        // Botón X (cerrar sin descargar) -> regresa a la vista de detalle
-        if (btnClose) {
-            btnClose.addEventListener('click', function() {
-                window.location.href = 'solicitud-detalle.jsp?index=<%= indexNum %>';
-            });
+    function formatSize(n) {
+        return n < 1024
+            ? n + ' B'
+            : n < 1048576
+                ? (n / 1024).toFixed(1) + ' KB'
+                : (n / 1048576).toFixed(1) + ' MB';
+    }
+
+    function cargar(file) {
+        if (!file) return;
+
+        const pdf = file.name.toLowerCase().endsWith('.pdf') && (!file.type || file.type === 'application/pdf');
+        if (!pdf) {
+            alert('Sólo se permiten archivos PDF.');
+            limpiar();
+            return;
         }
 
-        // 1. Agregar filas concatenando cadenas (compatible con JSP)
-        btnAgregarFila.addEventListener('click', function() {
-            var siguienteNumero = tbody.querySelectorAll('tr').length + 1;
+        if (file.size > 10 * 1024 * 1024) {
+            alert('El PDF no debe superar 10 MB.');
+            limpiar();
+            return;
+        }
 
-            var nuevaFila = document.createElement('tr');
-            nuevaFila.innerHTML =
-                '<td>' + siguienteNumero + '</td>' +
-                '<td></td>' +
-                '<td></td>' +
-                '<td></td>';
+        if (objectUrl) URL.revokeObjectURL(objectUrl);
+        objectUrl = URL.createObjectURL(file);
 
-            tbody.appendChild(nuevaFila);
-        });
+        document.getElementById('fileName').textContent = file.name;
+        document.getElementById('fileSize').textContent = formatSize(file.size);
+        document.getElementById('fileDate').textContent = new Date().toLocaleString('es-MX');
+        document.getElementById('preview').href = objectUrl;
+        document.getElementById('download').href = objectUrl;
+        document.getElementById('download').download = file.name;
 
-        // 2. Generar, descargar PDF y REDIRIGIR a los detalles con bandera activada
-        btnDescargar.addEventListener('click', function() {
-            const elemento = document.getElementById('pdfContent');
+        counter.innerHTML = '1 de 1 archivo<br>' + formatSize(file.size) + ' de 10 MB';
+        wrap.style.display = 'block';
+        send.disabled = false;
+    }
 
-            // Ocultar botones e iconos para que NO salgan en el PDF
-            const elementosOcultar = document.querySelectorAll('.no-print');
-            elementosOcultar.forEach(el => el.style.display = 'none');
+    function limpiar() {
+        input.value = '';
+        wrap.style.display = 'none';
+        send.disabled = true;
+        counter.innerHTML = '0 de 1 archivo<br>0 Bytes de 10 MB';
+        if (objectUrl) {
+            URL.revokeObjectURL(objectUrl);
+            objectUrl = null;
+        }
+    }
 
-            const opciones = {
-                margin:       [10, 10, 10, 10],
-                filename:     'Carta_Responsiva_Visitas_Academicas.pdf',
-                image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2, useCORS: true },
-                jsPDF:        { unit: 'mm', format: 'letter', orientation: 'portrait' }
-            };
+    input.addEventListener('change', () => cargar(input.files[0]));
 
-            // Generar PDF, descargarlo y LUEGO redirigir a los detalles
-            html2pdf().set(opciones).from(elemento).save().then(function() {
-                // Volver a mostrar elementos por si acaso
-                elementosOcultar.forEach(el => el.style.display = '');
+    const drop = document.querySelector('.drop');
+    drop.addEventListener('dragover', e => e.preventDefault());
+    drop.addEventListener('drop', e => {
+        e.preventDefault();
+        if (e.dataTransfer.files.length) {
+            const dt = new DataTransfer();
+            dt.items.add(e.dataTransfer.files[0]);
+            input.files = dt.files;
+            cargar(input.files[0]);
+        }
+    });
 
-                // REDIRECCIÓN AUTOMÁTICA a detalles notificando que ya se descargó
-                window.location.href = 'solicitud-detalle.jsp?index=<%= indexNum %>&cartaDescargada=true';
-            });
-        });
+    document.getElementById('uploadForm').addEventListener('submit', e => {
+        if (!input.files.length) {
+            e.preventDefault();
+            alert('Selecciona la carta responsiva firmada en PDF.');
+        }
     });
 </script>
 </body>

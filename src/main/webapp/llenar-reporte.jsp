@@ -1,349 +1,464 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
+<c:set var="ctx" value="${pageContext.request.contextPath}"/>
+<c:set var="reporteRechazado" value="${not empty reporte and fn:toUpperCase(reporte.estado) eq 'RECHAZADO'}"/>
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reporte de Visita Académica</title>
-    <!-- Bootstrap 5 -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Reporte de visita académica</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
     <style>
-        body, html {
-            height: 100%;
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
             margin: 0;
-            background-color: #9cb0c4;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #fff;
+            color: #1e3a5f;
+            font-family: "Segoe UI", Arial, sans-serif;
         }
-        .full-wrapper {
+
+        .main {
+            margin-left: 240px;
             min-height: 100vh;
-            display: flex;
-            padding: 1rem;
-        }
-        .app-container {
-            flex: 1;
-            background: #ffffff;
-            display: flex;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            padding: 26px 36px;
         }
 
-        /* SIDEBAR IDENTICO AL ORIGINAL */
-        .sidebar {
-            width: 240px;
-            background-color: #1f3a5e;
-            color: #ffffff;
-            padding: 2rem 1rem;
+        .top {
             display: flex;
-            flex-direction: column;
-            align-items: center;
-            flex-shrink: 0;
-        }
-        .avatar-circle {
-            width: 75px;
-            height: 75px;
-            background-color: #e2e8f0;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #1f3a5e;
-            font-size: 2.4rem;
-            margin-bottom: 0.5rem;
-        }
-        .role-title {
-            font-weight: 700;
-            font-size: 0.95rem;
-            letter-spacing: 1px;
-            margin-bottom: 2.5rem;
-        }
-        .sidebar-menu { width: 100%; list-style: none; padding: 0; margin: 0; }
-        .sidebar-menu li { margin-bottom: 0.8rem; }
-        .sidebar-menu a {
-            color: #ffffff; text-decoration: none; display: flex; align-items: center;
-            gap: 12px; font-size: 0.95rem; font-weight: 500; padding: 10px 14px; border-radius: 8px;
-        }
-        .sidebar-menu a:hover, .sidebar-menu a.active { background-color: rgba(255,255,255,0.15); }
-        .logout-link { margin-top: auto; width: 100%; }
-        .logout-link a { color: #ffffff; text-decoration: none; display: flex; align-items: center; gap: 8px; }
-
-        /* CONTENIDO PRINCIPAL */
-        .main-content {
-            flex-grow: 1;
-            padding: 2rem 3rem;
-            overflow-y: auto;
-            background-color: #ffffff;
-        }
-
-        /* BARRA DE PROGRESO SIMULADA */
-        .progress-tracker {
-            display: flex;
-            justify-content: center;
+            justify-content: space-between;
             align-items: flex-start;
-            margin-bottom: 2rem;
+        }
+
+        .top h1 {
+            font-size: 1.3rem;
+            margin: 0;
+        }
+
+        .steps {
+            display: flex;
             gap: 15px;
+        }
+
+        .step {
+            text-align: center;
+            font-size: .55rem;
+            color: #7a8490;
+        }
+
+        .step i {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #c8c2b9;
+            color: #fff;
+            display: grid;
+            place-items: center;
+            margin: auto auto 4px;
+        }
+
+        .step.done i,
+        .step.active i {
+            background: #f59120;
+        }
+
+        .date {
+            font-size: .65rem;
+            text-align: right;
+        }
+
+        .section {
+            border: 1px solid #d6dee7;
+            border-radius: 5px;
+            margin-top: 18px;
+            padding: 15px;
+        }
+
+        .section-title {
+            font-size: .8rem;
+            font-weight: 850;
+            margin-bottom: 10px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+
+        .field label {
+            display: block;
+            font-size: .58rem;
+            font-weight: 800;
+            margin-bottom: 3px;
+        }
+
+        .value {
+            min-height: 29px;
+            padding: 6px 8px;
+            background: #e9f0f7;
+            border: 1px solid #d6e0ea;
+            font-size: .68rem;
+        }
+
+        .span2 {
+            grid-column: span 2;
+        }
+
+        .upload-title {
+            color: #f59120;
+            font-size: .78rem;
+            font-weight: 850;
+        }
+
+        .upload-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 130px);
+            gap: 14px;
+            margin-top: 13px;
+        }
+
+        .photo {
+            height: 110px;
+            background: #e9f0f7;
+            border: 1px solid #d9e1ea;
+            border-radius: 4px;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-size: .62rem;
+            font-weight: 700;
+        }
+
+        .photo i {
+            display: block;
+            font-size: 1.3rem;
+            color: #f59120;
+            margin-bottom: 5px;
+        }
+
+        .photo img {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .photo span {
+            z-index: 2;
+            background: rgba(255, 255, 255, .82);
+            padding: 4px;
+        }
+
+        .actions {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 22px;
+        }
+
+        .btn {
+            border: 0;
+            border-radius: 5px;
+            padding: 10px 22px;
+            background: #1e3a5f;
+            color: #fff;
+            text-decoration: none;
+            font-weight: 800;
+            cursor: pointer;
+        }
+
+        .send {
+            background: #f59120;
+        }
+
+        .send:disabled {
+            opacity: .45;
+        }
+
+        .alert {
+            padding: 11px 14px;
+            margin: 12px 0;
+            border-radius: 5px;
+        }
+
+        .error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .info {
+            background: #e8f4ff;
+            color: #174b73;
+        }
+
+        .rejected {
+            background: #fff1f2;
+            color: #9f1239;
+        }
+
+        .evidence-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 14px;
+        }
+
+        .evidence {
+            border: 1px solid #d7dee7;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .evidence img {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .evidence div {
+            padding: 8px;
+            font-size: .7rem;
             text-align: center;
         }
-        .step { display: flex; flex-direction: column; align-items: center; width: 70px; }
-        .step-icon {
-            width: 35px; height: 35px; border-radius: 50%; background-color: #f59e0b; color: white;
-            display: flex; align-items: center; justify-content: center; margin-bottom: 5px; font-size: 0.9rem;
-        }
-        .step-icon.pending { background-color: #cbd5e1; color: #64748b; }
-        .step-text { font-size: 0.65rem; color: #475569; line-height: 1.1; font-weight: 600; }
 
-        .header-title {
-            color: #0f172a; font-weight: bold; font-size: 1.6rem; margin-bottom: 2rem;
-            display: flex; justify-content: space-between; align-items: center;
-        }
-        .section-title {
-            color: #1f3a5e; font-size: 1.2rem; font-weight: 600; margin-bottom: 1rem; margin-top: 1.5rem;
-        }
+        @media(max-width: 850px) {
+            .main {
+                margin-left: 0;
+                padding: 20px 14px;
+            }
 
-        /* INPUTS ESTILO FIGMA */
-        .custom-label {
-            font-size: 0.85rem; font-weight: 700; color: #1f3a5e; margin-bottom: 0.3rem;
-        }
-        .input-readonly {
-            background-color: #e2e8f0; border: none; border-radius: 4px; padding: 6px 12px;
-            font-size: 0.9rem; color: #64748b; width: 100%; font-weight: 500; outline: none;
-        }
+            .top {
+                display: block;
+            }
 
-        /* CAJA DE SUBIDA DE ARCHIVOS */
-        .upload-box {
-            border: 1px solid #94a3b8; border-radius: 8px; padding: 1.5rem; margin-top: 1rem;
-        }
-        .upload-title { color: #f59e0b; font-weight: bold; font-size: 1.1rem; margin-bottom: 1rem; }
-        .file-upload-wrapper { display: flex; gap: 15px; flex-wrap: wrap; }
+            .steps {
+                overflow: auto;
+                margin-top: 15px;
+            }
 
-        .upload-square {
-            width: 120px; height: 120px; background-color: #e2e8f0; border-radius: 6px;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            cursor: pointer; transition: background 0.2s; text-align: center;
-        }
-        .upload-square:hover { background-color: #cbd5e1; }
-        .upload-square span { font-size: 1.5rem; color: #64748b; margin-bottom: 5px; }
-        .upload-square .foto-text { font-weight: bold; color: #0f172a; font-size: 0.9rem; margin: 0;}
-        .upload-square .sel-text { color: #f59e0b; font-weight: bold; font-size: 0.8rem; }
-        input[type="file"] { display: none; }
+            .grid {
+                grid-template-columns: 1fr 1fr;
+            }
 
-        /* BOTONES FINALES */
-        .btn-atras {
-            background-color: #f59e0b; color: white; font-weight: bold; border: none;
-            padding: 10px 30px; border-radius: 6px; text-decoration: none;
-        }
-        .btn-enviar {
-            background-color: #f59e0b; color: white; font-weight: bold; border: none;
-            padding: 10px; border-radius: 6px; width: 100%; max-width: 400px;
+            .upload-grid,
+            .evidence-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .photo {
+                width: 100%;
+            }
+
+            .span2 {
+                grid-column: span 2;
+            }
         }
     </style>
 </head>
 <body>
+<jsp:include page="Layout/sidebar.jsp"/>
 
-<div class="full-wrapper">
-    <div class="app-container">
+<main class="main">
+    <!-- Encabezado y Stepper -->
+    <div class="top">
+        <div>
+            <h1>REPORTE DE VISITA ACADÉMICA</h1>
+        </div>
+        <div class="steps">
+            <div class="step done"><i class="bi bi-file-earmark"></i>Solicitud creada</div>
+            <div class="step done"><i class="bi bi-send"></i>Solicitud enviada</div>
+            <div class="step done"><i class="bi bi-check2"></i>Solicitud aceptada</div>
+            <div class="step done"><i class="bi bi-file-text"></i>Carta enviada</div>
+            <div class="step done"><i class="bi bi-check2"></i>Carta aceptada</div>
+            <div class="step done"><i class="bi bi-truck"></i>Visita</div>
+            <div class="step active"><i class="bi bi-images"></i>Reporte enviado</div>
+            <div class="step"><i class="bi bi-check2-all"></i>Reporte aceptado</div>
+        </div>
+        <div class="date">Folio: #<c:out value="${expediente.idVisita}"/></div>
+    </div>
 
-        <!-- SIDEBAR -->
-        <div class="sidebar">
-            <div class="avatar-circle"><i class="bi bi-person"></i></div>
-            <div class="role-title">DOCENTE</div>
-            <ul class="sidebar-menu">
-                <li><a href="${pageContext.request.contextPath}/inicio"><i class="bi bi-house-door"></i> Inicio</a></li>
-                <li><a href="${pageContext.request.contextPath}/mis-solicitudes"><i class="bi bi-file-earmark-text"></i> Solicitud</a></li>
-                <li><a href="${pageContext.request.contextPath}/reportes-docente" class="active"><i class="bi bi-camera"></i> Reporte</a></li>
-                <li><a href="${pageContext.request.contextPath}/historico-docente"><i class="bi bi-clock-history"></i> Histórico</a></li>
-            </ul>
-            <div class="logout-link">
-                <form action="${pageContext.request.contextPath}/logout" method="post">
-                    <input type="hidden" name="csrfToken" value="${sessionScope.csrfToken}">
-                    <button type="submit" class="btn text-white"><i class="bi bi-box-arrow-right"></i> Cerrar sesión</button>
-                </form>
+    <!-- Alertas -->
+    <c:if test="${not empty error}">
+        <div class="alert error"><c:out value="${error}"/></div>
+    </c:if>
+
+    <c:if test="${reporteRechazado}">
+        <div class="alert rejected">
+            <strong>Reporte con correcciones:</strong> <c:out value="${reporte.observaciones}"/>. Puedes volver a enviar las tres fotografías.
+        </div>
+    </c:if>
+
+    <!-- Información de la Visita -->
+    <section class="section">
+        <div class="section-title">Datos de los participantes y responsables</div>
+        <div class="grid">
+            <div class="field">
+                <label>ÁREA DEL SOLICITANTE</label>
+                <div class="value"><c:out value="${expediente.division}"/></div>
+            </div>
+            <div class="field span2">
+                <label>DOCENTE RESPONSABLE</label>
+                <div class="value"><c:out value="${expediente.docente}"/></div>
+            </div>
+            <div class="field">
+                <label>TELÉFONO / CORREO</label>
+                <div class="value"><c:out value="${expediente.correoDocente}"/></div>
+            </div>
+            <div class="field span2">
+                <label>PROGRAMA EDUCATIVO</label>
+                <div class="value"><c:out value="${expediente.carrera}"/></div>
+            </div>
+            <div class="field">
+                <label>CUATRIMESTRE</label>
+                <div class="value"><c:out value="${expediente.semestre}"/></div>
+            </div>
+            <div class="field">
+                <label>GRUPO / ESTUDIANTES</label>
+                <div class="value"><c:out value="${expediente.grupo}"/> · <c:out value="${expediente.numeroEstudiantes}"/></div>
             </div>
         </div>
 
-        <!-- MAIN CONTENT -->
-        <div class="main-content">
-
-            <!-- Simulador de Barra de Progreso -->
-            <div class="progress-tracker">
-                <div class="step"><div class="step-icon"><i class="bi bi-file-earmark-text"></i></div><div class="step-text">Solicitud creada</div></div>
-                <div class="step"><div class="step-icon"><i class="bi bi-send"></i></div><div class="step-text">Solicitud enviada</div></div>
-                <div class="step"><div class="step-icon"><i class="bi bi-check-circle"></i></div><div class="step-text">Solicitud aceptada</div></div>
-                <div class="step"><div class="step-icon"><i class="bi bi-envelope-paper"></i></div><div class="step-text">Carta responsiva enviada</div></div>
-                <div class="step"><div class="step-icon"><i class="bi bi-check2-all"></i></div><div class="step-text">Carta responsiva aceptada</div></div>
-                <div class="step"><div class="step-icon"><i class="bi bi-bus-front"></i></div><div class="step-text">Visita en curso</div></div>
-                <div class="step"><div class="step-icon"><i class="bi bi-camera"></i></div><div class="step-text">Reporte enviado</div></div>
-                <div class="step"><div class="step-icon pending"><i class="bi bi-shield-check"></i></div><div class="step-text">Reporte aceptado</div></div>
-                <div class="step"><div class="step-icon pending"><i class="bi bi-flag"></i></div><div class="step-text">Visita concretada</div></div>
+        <div class="section-title" style="margin-top:14px">Datos del lugar a visitar</div>
+        <div class="grid">
+            <div class="field span2">
+                <label>EMPRESA</label>
+                <div class="value"><c:out value="${expediente.empresa}"/></div>
             </div>
-
-            <!-- Cabecera -->
-            <div class="header-title">
-                REPORTE DE VISITA ACADÉMICA
-                <div style="text-align: right; font-size: 0.8rem; color: #0f172a; font-weight: bold;">
-                    FO-UTEZ-EST-08<br>rev.08
-                </div>
+            <div class="field span2">
+                <label>LUGAR O DIRECCIÓN</label>
+                <div class="value"><c:out value="${expediente.direccionEmpresa}"/></div>
             </div>
-
-            <div class="row mb-4">
-                <div class="col-md-4">
-                    <div class="custom-label">Fecha de solicitud:</div>
-                    <input type="text" class="input-readonly" value="<c:out value='${expediente.creadoEn}'/>" readonly>
-                </div>
+            <div class="field">
+                <label>TELÉFONO</label>
+                <div class="value"><c:out value="${expediente.telefonoEmpresa}"/></div>
             </div>
+            <div class="field">
+                <label>CORREO</label>
+                <div class="value"><c:out value="${expediente.correoEmpresa}"/></div>
+            </div>
+            <div class="field">
+                <label>FECHA DE INICIO</label>
+                <div class="value"><c:out value="${expediente.fechaInicio}"/></div>
+            </div>
+            <div class="field">
+                <label>FECHA DE TÉRMINO</label>
+                <div class="value"><c:out value="${expediente.fechaFin}"/></div>
+            </div>
+            <div class="field span2">
+                <label>OBJETIVO</label>
+                <div class="value"><c:out value="${expediente.proposito}"/></div>
+            </div>
+            <div class="field span2">
+                <label>ASIGNATURAS</label>
+                <div class="value"><c:out value="${expediente.asignatura}"/></div>
+            </div>
+        </div>
+    </section>
 
-            <!-- INICIO DEL FORMULARIO - Modificado para ir directo a la vista de éxito -->
-            <form action="${pageContext.request.contextPath}/docente/subir-reporte" method="POST" enctype="multipart/form-data">
-                <input type="hidden" name="csrfToken" value="${sessionScope.csrfToken}">
+    <!-- Subida o Visualización de Reportes -->
+    <c:choose>
+        <c:when test="${empty reporte or reporteRechazado}">
+            <form id="reportForm" action="${ctx}/docente/subir-reporte" method="post" enctype="multipart/form-data">
+                <input type="hidden" name="csrfToken" value="<c:out value='${sessionScope.csrfToken}'/>">
                 <input type="hidden" name="idVisita" value="${expediente.idVisita}">
 
-                <!-- SECCIÓN 1 -->
-                <div class="section-title">Datos de los participantes y Responsables</div>
+                <section class="section">
+                    <div class="upload-title">Subida de evidencias</div>
+                    <div style="font-size:.65rem">Agrega exactamente tres fotografías de la visita. Formatos: PNG, JPG, JPEG o WEBP. Máximo 10 MB por foto.</div>
+                    <div class="upload-grid">
+                        <c:forEach begin="1" end="3" var="n">
+                            <label class="photo" for="evidencia${n}">
+                                <div><i class="bi bi-image"></i>Foto ${n}</div>
+                                <img id="preview${n}" alt="Vista previa" hidden>
+                                <span id="name${n}" hidden></span>
+                            </label>
+                            <input hidden class="evidence-input" type="file" id="evidencia${n}" name="evidencia${n}" accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp" required>
+                        </c:forEach>
+                    </div>
+                </section>
 
-                <div class="row g-3 mb-3">
-                    <div class="col-md-4">
-                        <div class="custom-label">Área del solicitante:</div>
-                        <input type="text" class="input-readonly" value="<c:out value='${expediente.division}'/>" readonly>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="custom-label">Docente responsable:</div>
-                        <input type="text" class="input-readonly" value="<c:out value='${expediente.docente}'/>" readonly>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="custom-label">Teléfono de contacto:</div>
-                        <input type="text" class="input-readonly" value="<c:out value='${expediente.correoDocente}'/>" readonly>
-                    </div>
+                <div class="actions">
+                    <a class="btn" href="${ctx}/detalle-solicitud?id=${expediente.idVisita}">Atrás</a>
+                    <button class="btn send" id="send" type="submit" disabled>Enviar reporte</button>
                 </div>
-
-                <div class="row g-3 mb-4">
-                    <div class="col-md-6">
-                        <div class="custom-label">Docente acompañante:</div>
-                        <input type="text" class="input-readonly" value="<c:out value='${expediente.docenteAcompanante}'/>" readonly>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="custom-label">División o área del participante:</div>
-                        <input type="text" class="input-readonly" value="<c:out value='${expediente.division}'/>" readonly>
-                    </div>
-                </div>
-
-                <div class="row g-3 mb-2">
-                    <div class="col-md-3">
-                        <div class="custom-label">Programa educativo:</div>
-                        <input type="text" class="input-readonly" value="<c:out value='${expediente.carrera}'/>" readonly>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="custom-label">Cuatrimestre:</div>
-                        <input type="text" class="input-readonly" value="<c:out value='${expediente.semestre}'/>" readonly>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="custom-label">Grupo:</div>
-                        <input type="text" class="input-readonly" value="<c:out value='${expediente.grupo}'/>" readonly>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="custom-label">Nu. de Estudiantes:</div>
-                        <input type="text" class="input-readonly" value="<c:out value='${expediente.numeroEstudiantes}'/>" readonly>
-                    </div>
-                </div>
-
-                <!-- SECCIÓN 2 -->
-                <div class="section-title">Datos del lugar a visitar</div>
-
-                <div class="row g-3 mb-3">
-                    <div class="col-md-4">
-                        <div class="custom-label">Nombre de la empresa o actividad:</div>
-                        <input type="text" class="input-readonly" value="<c:out value='${expediente.empresa}'/>" readonly>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="custom-label">Lugar o dirección:</div>
-                        <input type="text" class="input-readonly" value="<c:out value='${expediente.direccionEmpresa}'/>" readonly>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="custom-label">Teléfono de contacto:</div>
-                        <input type="text" class="input-readonly" value="<c:out value='${expediente.telefonoEmpresa}'/>" readonly>
-                    </div>
-                </div>
-
-                <div class="row g-3 mb-4">
-                    <div class="col-md-4">
-                        <div class="custom-label">Correo electrónico:</div>
-                        <input type="text" class="input-readonly" value="<c:out value='${expediente.correoEmpresa}'/>" readonly>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="custom-label">Objetivo de la visita:</div>
-                        <input type="text" class="input-readonly" value="<c:out value='${expediente.proposito}'/>" readonly>
-                    </div>
-                    <div class="col-md-2">
-                        <div class="custom-label">Fecha de inicio:</div>
-                        <input type="text" class="input-readonly" value="<c:out value='${expediente.fechaInicio}'/>" readonly>
-                    </div>
-                    <div class="col-md-2">
-                        <div class="custom-label">Fecha de término:</div>
-                        <input type="text" class="input-readonly" value="<c:out value='${expediente.fechaFin}'/>" readonly>
-                    </div>
-                </div>
-
-                <!-- SECCIÓN 3: EVIDENCIAS -->
-                <div class="upload-box">
-                    <div class="upload-title">Subida de Documentos y Evidencias</div>
-                    <div class="custom-label text-dark mb-3"><i class="bi bi-camera-fill text-warning"></i> Asignatura que se refuerza con la visita:</div>
-
-                    <div class="file-upload-wrapper">
-                        <label class="upload-square" for="reportePdf">
-                            <span><i class="bi bi-file-earmark-pdf"></i></span>
-                            <p class="foto-text">Reporte PDF</p>
-                            <p class="sel-text">Seleccionar</p>
-                            <input type="file" id="reportePdf" name="reporte" accept="application/pdf,.pdf" required onchange="actualizarTexto(this, 0)">
-                        </label>
-                        <!-- Foto 1 -->
-                        <label class="upload-square" for="foto1">
-                            <span>+</span>
-                            <p class="foto-text">Foto 1</p>
-                            <p class="sel-text">Seleccionar</p>
-                            <input type="file" id="foto1" name="evidencia1" accept=".png,.jpg,.jpeg,.webp" required onchange="actualizarTexto(this, 1)">
-                        </label>
-
-                        <!-- Foto 2 -->
-                        <label class="upload-square" for="foto2">
-                            <span>+</span>
-                            <p class="foto-text">Foto 2</p>
-                            <p class="sel-text">Seleccionar</p>
-                            <input type="file" id="foto2" name="evidencia2" accept=".png,.jpg,.jpeg,.webp" required onchange="actualizarTexto(this, 2)">
-                        </label>
-
-                        <!-- Foto 3 -->
-                        <label class="upload-square" for="foto3">
-                            <span>+</span>
-                            <p class="foto-text">Foto 3</p>
-                            <p class="sel-text">Seleccionar</p>
-                            <input type="file" id="foto3" name="evidencia3" accept=".png,.jpg,.jpeg,.webp" required onchange="actualizarTexto(this, 3)">
-                        </label>
-                    </div>
-                </div>
-
-                <!-- BOTONES DE ACCIÓN -->
-                <div class="d-flex justify-content-between align-items-center mt-4">
-                    <a href="${pageContext.request.contextPath}/detalle-solicitud?id=${expediente.idVisita}" class="btn-atras">Atrás</a>
-                    <button type="submit" class="btn-enviar">[Enviar Reporte a Revisión]</button>
-                </div>
-
             </form>
-        </div>
-    </div>
-</div>
+        </c:when>
+        <c:otherwise>
+            <div class="alert info">
+                <strong>Reporte enviado.</strong> Se encuentra en estado: <c:out value="${reporte.estado}"/>. La solicitud permanecerá en Reportes hasta que Estadías la acepte.
+            </div>
+            <section class="section">
+                <div class="section-title">Tres evidencias enviadas</div>
+                <div class="evidence-grid">
+                    <c:forEach var="doc" items="${expediente.documentos}">
+                        <div class="evidence">
+                            <img src="${ctx}/archivo?id=${doc.idDocumento}" alt="Evidencia">
+                            <div><c:out value="${doc.nombreArchivo}"/></div>
+                        </div>
+                    </c:forEach>
+                </div>
+            </section>
+            <div class="actions">
+                <a class="btn" href="${ctx}/reportes-docente">Atrás</a>
+            </div>
+        </c:otherwise>
+    </c:choose>
+</main>
 
 <script>
-    // Script sencillo para que cuando seleccionen la foto, el cuadro avise que ya se cargó
-    function actualizarTexto(input, num) {
-        if (input.files && input.files[0]) {
-            let label = input.parentElement;
-            label.style.backgroundColor = '#dcfce3'; // Cambia a un tonito verde
-            label.querySelector('.sel-text').textContent = 'Cargada ✓';
-            label.querySelector('.sel-text').style.color = '#166534';
+    const inputs = [...document.querySelectorAll('.evidence-input')];
+    const send = document.getElementById('send');
+
+    function validar() {
+        if (!send) return;
+        send.disabled = !inputs.every(i => i.files.length === 1);
+    }
+
+    inputs.forEach((input, index) => input.addEventListener('change', () => {
+        const file = input.files[0];
+        if (!file) {
+            validar();
+            return;
         }
+
+        const ok = /\.(png|jpe?g|webp)$/i.test(file.name) && file.size <= 10 * 1024 * 1024;
+        if (!ok) {
+            alert('Cada evidencia debe ser una imagen PNG, JPG, JPEG o WEBP de máximo 10 MB.');
+            input.value = '';
+            validar();
+            return;
+        }
+
+        const n = index + 1;
+        const img = document.getElementById('preview' + n);
+        const name = document.getElementById('name' + n);
+
+        img.src = URL.createObjectURL(file);
+        img.hidden = false;
+        name.textContent = file.name;
+        name.hidden = false;
+
+        validar();
+    }));
+
+    const form = document.getElementById('reportForm');
+    if (form) {
+        form.addEventListener('submit', e => {
+            if (!inputs.every(i => i.files.length)) {
+                e.preventDefault();
+                alert('Selecciona las tres fotografías del reporte.');
+            }
+        });
     }
 </script>
-
 </body>
 </html>

@@ -1,460 +1,379 @@
-<%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<c:set var="ctx" value="${pageContext.request.contextPath}"/>
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Solicitud de Visita Industrial - Detalles</title>
-    <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Bootstrap Icons -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
-
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Detalle de solicitud - AWGVA</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
     <style>
-        * { box-sizing: border-box; }
+        * {
+            box-sizing: border-box;
+        }
 
-        body, html {
-            height: 100%;
+        body {
             margin: 0;
-            padding: 0;
-            background-color: #9cb0c4;
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-            overflow-x: hidden;
+            background: #a9bbcf;
+            font-family: "Segoe UI", Arial, sans-serif;
+            color: #1e3a5f;
         }
 
-        .full-screen-wrapper {
+        .main {
+            margin-left: 240px;
             min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            padding: 1rem;
+            padding: 20px;
         }
 
-        .dashboard-container {
-            flex: 1;
-            width: 100%;
-            background: #ffffff;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-            display: flex;
+        .panel {
+            max-width: 1050px;
+            margin: auto;
+            background: #fff;
+            min-height: calc(100vh - 40px);
+            padding: 24px 30px;
+            position: relative;
         }
 
-        /* Sidebar Izquierdo */
-        .sidebar {
-            width: 240px;
-            background-color: #1f3a5e;
-            color: #ffffff;
-            padding: 2rem 1rem;
+        .close {
+            position: absolute;
+            right: 18px;
+            top: 12px;
+            color: #6b7280;
+            text-decoration: none;
+            font-size: 1.3rem;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 1.35rem;
+            font-weight: 850;
+            margin: 0 0 15px;
+        }
+
+        .status-row {
             display: flex;
-            flex-direction: column;
+            justify-content: space-between;
+            gap: 14px;
             align-items: center;
-            flex-shrink: 0;
+            margin-bottom: 16px;
         }
 
-        .avatar-circle {
-            width: 75px;
-            height: 75px;
-            background-color: #e2e8f0;
-            border-radius: 50%;
+        .info-title {
+            font-size: .82rem;
+            color: #e84a5f;
+            font-weight: 800;
+        }
+
+        .status {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 999px;
+            padding: 6px 24px;
+            font-size: .75rem;
+            font-weight: 800;
+            box-shadow: 0 2px 7px rgba(0, 0, 0, .05);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1.35fr .9fr;
+            gap: 18px;
+        }
+
+        .box {
+            border: 1px solid #dce3eb;
+            border-radius: 10px;
+            padding: 13px;
+            box-shadow: 0 2px 7px rgba(30, 58, 95, .05);
+        }
+
+        .box-title {
+            font-size: .78rem;
+            font-weight: 850;
+            margin-bottom: 9px;
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .field {
+            margin-bottom: 9px;
+        }
+
+        .field label {
+            font-size: .63rem;
+            font-weight: 800;
+            display: block;
+            margin-bottom: 3px;
+        }
+
+        .value {
+            background: #eef3f8;
+            border: 1px solid #d8e1eb;
+            border-radius: 4px;
+            min-height: 28px;
+            padding: 6px 8px;
+            font-size: .72rem;
+            overflow-wrap: anywhere;
+        }
+
+        .participants {
+            grid-column: 1/-1;
+        }
+
+        .participant-grid {
+            display: grid;
+            grid-template-columns: 1fr 1.5fr 1.3fr 1fr;
+            gap: 12px;
+        }
+
+        .actions-title {
+            font-size: .65rem;
+            font-weight: 800;
+            margin: 18px 0 8px;
+        }
+
+        .action-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .action {
+            border: 0;
+            border-radius: 5px;
+            min-height: 38px;
+            padding: 9px 10px;
+            text-decoration: none;
+            font-size: .72rem;
+            font-weight: 850;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #1f3a5e;
-            font-size: 2.4rem;
-            margin-bottom: 0.5rem;
+            gap: 7px;
+            text-align: center;
         }
 
-        .role-title {
-            font-weight: 700;
-            font-size: 0.95rem;
-            letter-spacing: 1px;
-            margin-bottom: 2.5rem;
+        .blue {
+            background: #1e3a5f;
+            color: #fff;
         }
 
-        .sidebar-menu {
-            width: 100%;
-            list-style: none;
-            padding: 0;
-            margin: 0;
+        .disabled {
+            background: #b9b4ab;
+            color: #fff;
+            cursor: not-allowed;
         }
 
-        .sidebar-menu li { margin-bottom: 0.8rem; }
+        .orange {
+            background: #f59120;
+            color: #fff;
+        }
 
-        .sidebar-menu a {
-            color: #ffffff;
-            text-decoration: none;
+        .footer {
             display: flex;
-            align-items: center;
-            gap: 12px;
-            font-size: 0.95rem;
-            font-weight: 500;
-            padding: 10px 14px;
-            border-radius: 8px;
-            transition: all 0.25s ease;
+            justify-content: flex-end;
+            margin-top: 18px;
         }
 
-        .sidebar-menu a:hover {
-            background-color: rgba(255, 255, 255, 0.15);
-            color: #f59e0b;
-        }
-
-        .logout-link {
-            margin-top: auto;
-            width: 100%;
-        }
-
-        .logout-link a {
-            color: #ffffff;
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 0.9rem;
-            padding: 8px 12px;
+        .notice {
+            background: #fff7e8;
+            border: 1px solid #ffd89c;
+            color: #8a5200;
+            padding: 9px 12px;
             border-radius: 6px;
+            margin-bottom: 12px;
+            font-size: .78rem;
         }
 
-        /* Contenido Principal */
-        .main-content {
-            flex-grow: 1;
-            padding: 2rem 2.5rem;
-            position: relative;
-            background-color: #ffffff;
-            overflow-y: auto;
-        }
-
-        .btn-close-custom {
-            position: absolute;
-            top: 20px;
-            right: 25px;
-            font-size: 1.4rem;
-            color: #64748b;
-            text-decoration: none;
-            cursor: pointer;
-            transition: color 0.2s, transform 0.2s;
-        }
-
-        .btn-close-custom:hover {
-            color: #ef4444;
-            transform: scale(1.15) rotate(90deg);
-        }
-
-        .main-title {
+        .doc-ok {
+            font-size: .65rem;
+            color: #16803b;
+            margin-top: 4px;
             text-align: center;
             font-weight: 700;
-            color: #1a202c;
-            font-size: 1.5rem;
-            margin-bottom: 1.8rem;
         }
 
-        /* Tarjetas de Información */
-        .info-card {
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 1.25rem 1.5rem;
-            height: 100%;
-            background-color: #ffffff;
-        }
+        @media(max-width: 850px) {
+            .main {
+                margin-left: 0;
+            }
 
-        .card-header-title {
-            font-weight: 600;
-            font-size: 1rem;
-            color: #1f3a5e;
-            margin-bottom: 0.85rem;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
+            .grid {
+                grid-template-columns: 1fr;
+            }
 
-        .badge-status {
-            border: 1px solid #cbd5e1;
-            border-radius: 20px;
-            padding: 10px 24px;
-            font-weight: 700;
-            color: #1f3a5e;
-            font-size: 0.95rem;
-            display: inline-block;
-            text-align: center;
-            width: 100%;
-            background-color: #f8fafc;
-        }
+            .participant-grid,
+            .action-grid {
+                grid-template-columns: 1fr;
+            }
 
-        .label-sm {
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            font-weight: 700;
-            color: #64748b;
-            margin-bottom: 3px;
-            display: block;
-        }
-
-        .val-text {
-            font-weight: 700;
-            color: #0f172a;
-            font-size: 1rem;
-            margin-bottom: 6px;
-        }
-
-        .val-subtext {
-            color: #475569;
-            font-size: 0.9rem;
-        }
-
-        .custom-input {
-            background-color: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 8px 14px;
-            font-size: 0.9rem;
-            color: #334155;
-            width: 100%;
-        }
-
-        /* Botones de Documentos */
-        .btn-doc-grey {
-            background-color: #b0a8a0;
-            color: #ffffff;
-            font-weight: 600;
-            border: none;
-            border-radius: 8px;
-            padding: 10px 14px;
-            font-size: 0.85rem;
-            width: 100%;
-            text-decoration: none;
-            display: inline-block;
-            text-align: center;
-            transition: all 0.2s ease;
-        }
-
-        .btn-doc-grey:hover {
-            background-color: #928a82;
-            color: #ffffff;
-        }
-
-        .btn-doc-navy {
-            background-color: #1f3a5e;
-            color: #ffffff;
-            font-weight: 600;
-            border: none;
-            border-radius: 8px;
-            padding: 10px 14px;
-            font-size: 0.85rem;
-            width: 100%;
-            text-decoration: none;
-            display: inline-block;
-            text-align: center;
-            transition: all 0.2s ease;
-        }
-
-        .btn-doc-navy:hover {
-            background-color: #132742;
-            color: #ffffff;
-        }
-
-        .btn-orange {
-            background-color: #f59e0b;
-            color: #ffffff;
-            font-weight: 700;
-            border: none;
-            border-radius: 8px;
-            padding: 10px 40px;
-            font-size: 0.9rem;
-            text-decoration: none;
-            display: inline-block;
-            transition: all 0.25s ease;
-        }
-
-        .btn-orange:hover {
-            background-color: #d97706;
-            color: #ffffff;
+            .panel {
+                padding: 22px 16px;
+            }
         }
     </style>
 </head>
 <body>
+<jsp:include page="Layout/sidebar.jsp"/>
 
-<div class="full-screen-wrapper">
-    <div class="px-2 pb-2 text-secondary fw-semibold" style="font-size: 0.85rem;">Vista de detalles.</div>
+<main class="main">
+    <section class="panel">
+        <a class="close" href="${ctx}/mis-solicitudes" aria-label="Cerrar">×</a>
 
-    <div class="dashboard-container">
-        <!-- BARRA LATERAL (SIDEBAR) -->
-        <div class="sidebar">
-            <div class="avatar-circle">
-                <i class="bi bi-person"></i>
+        <h1>Solicitud de Visita Industrial-División Académica</h1>
+
+        <div class="status-row">
+            <div class="info-title">
+                <i class="bi bi-geo-alt-fill"></i> Información de la Dirección Académica<br>
+                <small style="color:#1e3a5f">Director(a): Dirección de <c:out value="${expediente.division}"/></small>
             </div>
-            <div class="role-title">DOCENTE</div>
+            <span class="status">Estado: <c:out value="${expediente.estadoLegible}"/></span>
+        </div>
 
-            <ul class="sidebar-menu">
-                <li><a href="${pageContext.request.contextPath}/inicio"><i class="bi bi-house-door"></i> Inicio</a></li>
-                <li><a href="${pageContext.request.contextPath}/mis-solicitudes"><i class="bi bi-file-earmark-text"></i> Solicitud</a></li>
-                <li><a href="${pageContext.request.contextPath}/reportes-docente"><i class="bi bi-camera"></i> Reporte</a></li>
-                <li><a href="${pageContext.request.contextPath}/historico-docente"><i class="bi bi-clock-history"></i> Histórico</a></li>
-            </ul>
+        <c:if test="${param.pendienteCarta == '1'}">
+            <div class="notice">
+                Primero descarga la carta responsiva sin firmas para habilitar su carga y el oficio de autorización.
+            </div>
+        </c:if>
 
-            <div class="logout-link">
-                <form action="${pageContext.request.contextPath}/logout" method="post">
-                    <input type="hidden" name="csrfToken" value="${sessionScope.csrfToken}">
-                    <button type="submit" class="btn text-white"><i class="bi bi-box-arrow-right"></i> Cerrar sesión</button>
-                </form>
+        <div class="grid">
+            <!-- Detalles principales -->
+            <div class="box">
+                <div class="box-title"><i class="bi bi-geo-alt-fill"></i> Detalles principales</div>
+                <div class="field">
+                    <label>LUGAR DE VISITA</label>
+                    <div class="value"><c:out value="${expediente.empresa}"/></div>
+                </div>
+                <div class="field">
+                    <label>FECHA DE VISITA</label>
+                    <div class="value"><c:out value="${expediente.fechaInicio}"/> a <c:out value="${expediente.fechaFin}"/></div>
+                </div>
+                <div class="field">
+                    <label>CARRERA Y GRUPO</label>
+                    <div class="value"><c:out value="${expediente.carrera}"/> · <c:out value="${expediente.semestre}"/> · Grupo <c:out value="${expediente.grupo}"/></div>
+                </div>
+                <div class="field">
+                    <label>OBJETIVO</label>
+                    <div class="value"><c:out value="${expediente.proposito}"/></div>
+                </div>
+            </div>
+
+            <!-- Información de la empresa -->
+            <div class="box">
+                <div class="box-title"><i class="bi bi-building-fill"></i> Información de la empresa</div>
+                <div class="field">
+                    <label>NOMBRE DE LA EMPRESA</label>
+                    <div class="value"><c:out value="${expediente.empresa}"/></div>
+                </div>
+                <div class="field">
+                    <label>DIRECCIÓN</label>
+                    <div class="value"><c:out value="${expediente.direccionEmpresa}"/></div>
+                </div>
+                <div class="field">
+                    <label>TELÉFONO</label>
+                    <div class="value"><c:out value="${expediente.telefonoEmpresa}"/></div>
+                </div>
+                <div class="field">
+                    <label>CORREO ELECTRÓNICO</label>
+                    <div class="value"><c:out value="${expediente.correoEmpresa}"/></div>
+                </div>
+            </div>
+
+            <!-- Participantes y documentos -->
+            <div class="box participants">
+                <div class="box-title"><i class="bi bi-people-fill"></i> Participantes y documentos</div>
+
+                <div class="participant-grid">
+                    <div class="field">
+                        <label>ÁREA SOLICITANTE</label>
+                        <div class="value"><c:out value="${expediente.division}"/></div>
+                    </div>
+                    <div class="field">
+                        <label>DOCENTE RESPONSABLE</label>
+                        <div class="value"><c:out value="${expediente.docente}"/></div>
+                    </div>
+                    <div class="field">
+                        <label>DOCENTES ACOMPAÑANTES</label>
+                        <div class="value"><c:out value="${expediente.docenteAcompanante}"/></div>
+                    </div>
+                    <div class="field">
+                        <label>ESTUDIANTES</label>
+                        <div class="value"><c:out value="${expediente.numeroEstudiantes}"/> estudiantes</div>
+                    </div>
+                </div>
+
+                <div class="actions-title">ACCIONES Y DOCUMENTACIÓN</div>
+
+                <!-- Fila de acciones 1 -->
+                <div class="action-grid">
+                    <a class="action blue" href="${ctx}/subir-solicitud-firmada?id=${expediente.idVisita}">
+                        <i class="bi bi-file-earmark-arrow-up"></i> Sol. c/firmas
+                    </a>
+                    <c:choose>
+                        <c:when test="${cartaDescargada}">
+                            <a class="action blue" href="${ctx}/subir-carta-firmada?id=${expediente.idVisita}">
+                                <i class="bi bi-file-earmark-arrow-up"></i> Carta resp c/firmas
+                            </a>
+                        </c:when>
+                        <c:otherwise>
+                                <span class="action disabled" title="Descarga primero la carta responsiva">
+                                    <i class="bi bi-lock"></i> Carta resp c/firmas
+                                </span>
+                        </c:otherwise>
+                    </c:choose>
+                    <c:choose>
+                        <c:when test="${cartaDescargada}">
+                            <a class="action blue" href="${ctx}/oficio-autorizacion?id=${expediente.idVisita}">
+                                <i class="bi bi-file-earmark-text"></i> Oficio de autorización
+                            </a>
+                        </c:when>
+                        <c:otherwise>
+                                <span class="action disabled" title="Descarga primero la carta responsiva">
+                                    <i class="bi bi-lock"></i> Oficio de autorización
+                                </span>
+                        </c:otherwise>
+                    </c:choose>
+                </div>
+
+                <!-- Fila de acciones 2 -->
+                <div class="action-grid">
+                    <a class="action blue" href="${ctx}/solicitud-previa?id=${expediente.idVisita}">
+                        <i class="bi bi-download"></i> Sol. s/firmas
+                    </a>
+                    <a class="action blue" href="${ctx}/carta-responsiva?id=${expediente.idVisita}">
+                        <i class="bi bi-download"></i> Carta resp s/firmas
+                    </a>
+                    <a class="action blue" href="${ctx}/reporte-docente?id=${expediente.idVisita}">
+                        <i class="bi bi-images"></i> Reporte
+                    </a>
+                </div>
+
+                <!-- Estado de documentos -->
+                <div class="action-grid">
+                    <div class="doc-ok">
+                        <c:if test="${not empty solicitudFirmada}">
+                            Solicitud con firmas cargada: <c:out value="${solicitudFirmada.nombreArchivo}"/>
+                        </c:if>
+                    </div>
+                    <div class="doc-ok">
+                        <c:if test="${not empty cartaFirmada}">
+                            Carta con firmas cargada: <c:out value="${cartaFirmada.nombreArchivo}"/>
+                        </c:if>
+                    </div>
+                    <div></div>
+                </div>
             </div>
         </div>
 
-        <!-- CONTENIDO PRINCIPAL -->
-        <div class="main-content">
-            <a href="${pageContext.request.contextPath}/mis-solicitudes" class="btn-close-custom" title="Cerrar"><i class="bi bi-x-lg"></i></a>
-
-            <h4 class="main-title">Solicitud de Visita Industrial-División Académica</h4>
-
-            <!-- FILA 1: Dirección Académica y Estado -->
-            <div class="row g-3 mb-3">
-                <div class="col-md-7">
-                    <div class="info-card">
-                        <div class="card-header-title">
-                            <span>📍</span> Información de la Dirección Académica
-                        </div>
-                        <div class="val-subtext mb-1">
-                            <strong>División:</strong> <c:out value="${expediente.division}"/>
-                        </div>
-                        <div class="val-subtext">
-                            <strong>Cargo:</strong> Directora
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-md-5 d-flex align-items-center">
-                    <div class="badge-status">
-                        Estado: <c:out value="${expediente.estadoLegible}"/>
-                    </div>
-                </div>
-            </div>
-
-            <!-- FILA 2: Detalles Principales e Información de la Empresa -->
-            <div class="row g-3 mb-3">
-                <!-- Detalles Principales -->
-                <div class="col-md-6">
-                    <div class="info-card">
-                        <div class="card-header-title">
-                            <span>📍</span> Detalles Principales
-                        </div>
-
-                        <span class="label-sm">LUGAR DE VISITA</span>
-                        <div class="val-text text-uppercase" style="color: #1f3a5e;">
-                            <c:out value="${expediente.empresa}"/>
-                        </div>
-
-                        <span class="label-sm mt-2">FECHA DE VISITA</span>
-                        <div class="val-text">
-                            <c:out value="${expediente.fechaInicio}"/> — <c:out value="${expediente.fechaFin}"/>
-                        </div>
-                        <div class="val-subtext mb-2">
-                            ID de solicitud: <c:out value="${expediente.idVisita}"/>
-                        </div>
-
-                        <span class="label-sm">Carrera y Grupo</span>
-                        <div class="val-text" style="font-size: 0.95rem;">
-                            <c:out value="${expediente.carrera}"/> · <c:out value="${expediente.semestre}"/> <c:out value="${expediente.grupo}"/>
-                        </div>
-                        <div class="val-subtext">
-                            🏫 <strong>Asignaturas: <c:out value="${expediente.asignatura}"/></strong><br>
-                            Objetivo: <c:out value="${expediente.proposito}"/>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Información de la Empresa -->
-                <div class="col-md-6">
-                    <div class="info-card">
-                        <div class="card-header-title">
-                            <span>🏢</span> Información de la Empresa
-                        </div>
-
-                        <label class="label-sm">Nombre de la Empresa</label>
-                        <input type="text" class="custom-input mb-2" value="<c:out value='${expediente.empresa}'/>" readonly>
-
-                        <label class="label-sm">Teléfono</label>
-                        <input type="text" class="custom-input mb-2" value="<c:out value='${expediente.telefonoEmpresa}'/>" readonly>
-
-                        <label class="label-sm">Correo Electrónico</label>
-                        <input type="text" class="custom-input" value="<c:out value='${expediente.correoEmpresa}'/>" readonly>
-                    </div>
-                </div>
-            </div>
-
-            <!-- FILA 3: Participantes y Documentos -->
-            <div class="row g-3">
-                <div class="col-12">
-                    <div class="info-card">
-                        <div class="card-header-title">
-                            <span>👥</span> Participantes y Documentos
-                        </div>
-
-                        <!-- Campos Participantes -->
-                        <div class="row g-2 mb-3">
-                            <div class="col-md-3">
-                                <label class="label-sm">Área Solicitante</label>
-                                <input type="text" class="custom-input" value="<c:out value='${expediente.division}'/>" readonly>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="label-sm">Docente Responsable</label>
-                                <input type="text" class="custom-input" value="<c:out value='${expediente.docente}'/>" readonly>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="label-sm">Docentes Acompañantes</label>
-                                <input type="text" class="custom-input" value="<c:out value='${expediente.docenteAcompanante}'/>" readonly>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="label-sm">Estudiantes por División</label>
-                                <input type="text" class="custom-input" value="<c:out value='${expediente.numeroEstudiantes}'/> Estudiantes" readonly>
-                            </div>
-                        </div>
-
-                        <!-- ACCIONES Y DOCUMENTACIÓN -->
-                        <span class="label-sm mb-2">ACCIONES Y DOCUMENTACIÓN</span>
-                        <div class="row g-2 mb-2">
-                            <div class="col-md-6">
-                                <form action="${pageContext.request.contextPath}/docente/subir-documento" method="post" enctype="multipart/form-data">
-                                    <input type="hidden" name="csrfToken" value="${sessionScope.csrfToken}">
-                                    <input type="hidden" name="idVisita" value="${expediente.idVisita}">
-                                    <input type="hidden" name="tipo" value="SOLICITUD_VISITA">
-                                    <input class="form-control form-control-sm mb-1" type="file" name="archivo" accept="application/pdf,.pdf" required>
-                                    <button class="btn-doc-navy">Subir solicitud de visita</button>
-                                </form>
-                            </div>
-                            <div class="col-md-6">
-                                <form action="${pageContext.request.contextPath}/docente/subir-documento" method="post" enctype="multipart/form-data">
-                                    <input type="hidden" name="csrfToken" value="${sessionScope.csrfToken}">
-                                    <input type="hidden" name="idVisita" value="${expediente.idVisita}">
-                                    <input type="hidden" name="tipo" value="CARTA_RESPONSIVA">
-                                    <input class="form-control form-control-sm mb-1" type="file" name="archivo" accept="application/pdf,.pdf" required>
-                                    <button class="btn-doc-navy">Subir carta responsiva</button>
-                                </form>
-                            </div>
-                        </div>
-
-                        <div class="row g-2 mt-2">
-                            <c:forEach var="doc" items="${expediente.documentos}">
-                                <div class="col-md-4">
-                                    <a href="${pageContext.request.contextPath}/archivo?id=${doc.idDocumento}" target="_blank" class="btn-doc-grey">
-                                        <c:out value="${doc.tipoLegible}"/> · <c:out value="${doc.estadoLegible}"/>
-                                    </a>
-                                </div>
-                            </c:forEach>
-                            <div class="col-md-4">
-                                <a href="${pageContext.request.contextPath}/reporte-docente?id=${expediente.idVisita}" class="btn-doc-navy">Reporte</a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Botón de acción inferior -->
-            <div class="text-end mt-4">
-                <a href="${pageContext.request.contextPath}/mis-solicitudes" class="btn-orange">Atrás</a>
-            </div>
-
+        <div class="footer">
+            <a class="action orange" href="${ctx}/mis-solicitudes">
+                <i class="bi bi-arrow-left"></i> Atrás
+            </a>
         </div>
-    </div>
-</div>
-
+    </section>
+</main>
 </body>
 </html>

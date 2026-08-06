@@ -1,279 +1,430 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
-<%
-    // Recuperar el índice de la solicitud para volver al detalle correcto
-    String indexParam = request.getParameter("index");
-    int indexNum = 0;
-    if (indexParam != null) {
-        try {
-            indexNum = Integer.parseInt(indexParam);
-        } catch (NumberFormatException e) {
-            indexNum = 0;
-        }
-    }
-%>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<c:set var="ctx" value="${pageContext.request.contextPath}"/>
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vista Docente - Gestión de Documentos</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Subir solicitud con firmas</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
     <style>
-        :root {
-            --bg-body: #a2b1c6;
-            --bg-sidebar: #223754;
-            --bg-main: #ffffff;
-            --color-primary: #f59e0b;
-            --color-secondary: #243c5a;
-            --color-text-dark: #333333;
-            --color-text-muted: #6b7280;
-            --color-inactive-btn: #c4c0b6;
-            --color-border: #e5e7eb;
+        * {
+            box-sizing: border-box;
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
-        body { background-color: var(--bg-body); height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
-        .app-window { display: flex; width: 100%; max-width: 1280px; height: 90vh; background-color: var(--bg-main); border-radius: 8px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.15); position: relative; }
+        body {
+            margin: 0;
+            background: #a9bbcf;
+            font-family: "Segoe UI", Arial, sans-serif;
+            color: #1e3a5f;
+        }
 
-        .sidebar { width: 260px; background-color: var(--bg-sidebar); color: white; display: flex; flex-direction: column; padding: 2.5rem 0; flex-shrink: 0; }
-        .user-profile { text-align: center; margin-bottom: 3rem; }
-        .user-profile i { font-size: 4rem; color: #cbd5e1; margin-bottom: 1rem; }
-        .user-profile h3 { font-size: 0.9rem; font-weight: 700; letter-spacing: 1px; }
-        .nav-menu { list-style: none; flex-grow: 1; }
-        .nav-menu li { padding: 1rem 2rem; display: flex; align-items: center; gap: 15px; cursor: pointer; font-weight: 600; font-size: 0.95rem; }
-        .nav-menu li.active { background-color: rgba(255,255,255,0.1); }
-        .sidebar-footer { padding: 1rem 2rem; margin-top: auto; }
-        .logout-btn { display: flex; align-items: center; gap: 15px; color: white; text-decoration: none; font-weight: 600; font-size: 0.95rem; }
+        .main {
+            margin-left: 240px;
+            min-height: 100vh;
+            padding: 18px;
+        }
 
-        .main-content { flex-grow: 1; padding: 2.5rem 4rem; display: flex; flex-direction: column; position: relative; overflow-y: auto; }
-        .close-btn { position: absolute; top: 1.5rem; right: 1.5rem; font-size: 1.2rem; color: var(--color-text-muted); cursor: pointer; border: none; background: none; }
-        .close-btn:hover { color: #ef4444; }
+        .panel {
+            max-width: 1050px;
+            margin: auto;
+            background: #fff;
+            min-height: calc(100vh - 36px);
+            padding: 28px 34px;
+        }
 
-        .stepper-container { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 2rem; position: relative; padding: 0 1rem; }
-        .step { display: flex; flex-direction: column; align-items: center; z-index: 2; width: 80px; position: relative; }
-        .step-icon { width: 40px; height: 40px; border-radius: 50%; background-color: #d1d5db; color: white; display: flex; justify-content: center; align-items: center; font-size: 1.2rem; margin-bottom: 0.5rem; }
-        .step.active .step-icon { background-color: var(--color-primary); }
-        .step-label { font-size: 0.65rem; text-align: center; color: var(--color-text-dark); font-weight: 500; line-height: 1.2; }
-        .stepper-line { position: absolute; top: 20px; left: 50px; right: 50px; height: 3px; background-color: #d1d5db; z-index: 1; }
+        .stepper {
+            display: flex;
+            justify-content: space-between;
+            position: relative;
+            margin-bottom: 35px;
+        }
 
-        .upload-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 1rem; }
-        .upload-title h2 { font-size: 1.1rem; color: var(--color-text-dark); margin-bottom: 0.2rem; }
-        .upload-title p, .upload-stats p { font-size: 0.8rem; color: var(--color-text-muted); }
-        .upload-stats { text-align: right; }
+        .stepper:before {
+            content: "";
+            position: absolute;
+            left: 4%;
+            right: 4%;
+            top: 15px;
+            height: 3px;
+            background: #c9c4bb;
+        }
 
-        .dropzone { border: 2px dashed var(--color-primary); border-radius: 12px; padding: 2.5rem 2rem; display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #fefdf8; margin-bottom: 1.5rem; cursor: pointer; }
-        .btn-browse { background-color: var(--color-secondary); color: white; border: none; padding: 0.6rem 2.5rem; border-radius: 6px; font-size: 0.95rem; font-weight: 500; cursor: pointer; margin-bottom: 0.8rem; }
-        .dropzone-text { font-size: 0.95rem; color: var(--color-text-dark); font-weight: 600; margin-bottom: 0.4rem; }
-        .dropzone-text span { color: #047857; text-decoration: underline; }
+        .step {
+            width: 11%;
+            text-align: center;
+            z-index: 1;
+            font-size: .58rem;
+        }
 
-        .table-container { margin-bottom: auto; overflow-x: auto; display: none; } /* Oculto inicialmente */
-        .doc-table { width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid var(--color-border); border-radius: 8px; overflow: hidden; }
-        .doc-table th { background-color: var(--bg-sidebar); color: white; padding: 12px 15px; text-align: left; font-size: 0.85rem; font-weight: 600; }
-        .doc-table td { padding: 15px; border-bottom: 1px solid var(--color-border); font-size: 0.9rem; color: var(--color-text-dark); font-weight: 600; vertical-align: middle; }
-        .badge-status { background-color: var(--bg-sidebar); color: white; padding: 4px 12px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; display: inline-block; }
+        .circle {
+            width: 31px;
+            height: 31px;
+            border-radius: 50%;
+            margin: auto auto 5px;
+            background: #c9c4bb;
+            color: #fff;
+            display: grid;
+            place-items: center;
+            font-size: .8rem;
+        }
 
-        .action-icons { display: flex; gap: 15px; justify-content: center; font-size: 1.1rem; color: var(--color-text-dark); }
-        .action-icons i { cursor: pointer; transition: color 0.2s; }
-        .action-icons i:hover { color: var(--color-primary); }
+        .done .circle,
+        .active .circle {
+            background: #f59120;
+        }
 
-        .action-buttons { display: flex; justify-content: space-between; margin-top: 1.5rem; padding-top: 1rem; }
-        .btn-action { background-color: var(--color-secondary); color: white; border: none; padding: 0.8rem 2rem; border-radius: 6px; font-size: 0.95rem; font-weight: 600; cursor: pointer; min-width: 120px; }
-        .btn-action:disabled { background-color: var(--color-inactive-btn); cursor: not-allowed; }
+        .title-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .title-row h2 {
+            font-size: 1rem;
+            margin: 0 0 3px;
+        }
+
+        .muted {
+            font-size: .7rem;
+            color: #7c8795;
+        }
+
+        .drop {
+            border: 2px dashed #f3a24e;
+            min-height: 190px;
+            margin-top: 24px;
+            display: grid;
+            place-items: center;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .browse {
+            background: #1e3a5f;
+            color: #fff;
+            border: 0;
+            border-radius: 5px;
+            padding: 10px 36px;
+            font-weight: 800;
+        }
+
+        .drop strong {
+            display: block;
+            margin-top: 15px;
+            font-size: .8rem;
+        }
+
+        .drop small {
+            display: block;
+            color: #8a93a0;
+            margin-top: 7px;
+        }
+
+        .table-wrap {
+            margin-top: 18px;
+            border: 1px solid #d7dee6;
+            border-radius: 6px;
+            overflow: hidden;
+            display: none;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: .72rem;
+        }
+
+        th {
+            background: #1e3a5f;
+            color: #fff;
+            padding: 10px;
+            border-right: 1px solid #f59120;
+        }
+
+        td {
+            padding: 12px;
+            text-align: center;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .badge {
+            background: #1e3a5f;
+            color: #fff;
+            border-radius: 10px;
+            padding: 3px 9px;
+            font-size: .58rem;
+        }
+
+        .icon-btn {
+            border: 0;
+            background: transparent;
+            color: #1e3a5f;
+            cursor: pointer;
+            margin: 0 3px;
+        }
+
+        .actions {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 25px;
+        }
+
+        .btn {
+            border: 0;
+            border-radius: 5px;
+            padding: 10px 28px;
+            background: #1e3a5f;
+            color: #fff;
+            text-decoration: none;
+            font-weight: 800;
+            cursor: pointer;
+        }
+
+        .btn:disabled {
+            opacity: .45;
+            cursor: not-allowed;
+        }
+
+        .error {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 10px 14px;
+            margin: 12px 0;
+        }
+
+        .existing {
+            background: #e8f4ff;
+            border: 1px solid #b7d9f5;
+            padding: 10px 14px;
+            margin: 12px 0;
+            font-size: .75rem;
+        }
+
+        @media(max-width: 800px) {
+            .main {
+                margin-left: 0;
+            }
+
+            .stepper {
+                overflow: auto;
+            }
+
+            .step {
+                min-width: 90px;
+            }
+
+            .panel {
+                padding: 20px 14px;
+            }
+        }
     </style>
 </head>
 <body>
+<jsp:include page="Layout/sidebar.jsp"/>
 
-<div class="app-window">
-    <!-- Sidebar -->
-    <aside class="sidebar">
-        <div class="user-profile">
-            <i class="fa-solid fa-circle-user"></i>
-            <h3>DOCENTE</h3>
-        </div>
-        <ul class="nav-menu">
-            <li><i class="fa-solid fa-house"></i> Inicio</li>
-            <li class="active"><i class="fa-regular fa-file-lines"></i> Solicitud</li>
-            <li><i class="fa-solid fa-list-check"></i> Reporte</li>
-            <li><i class="fa-solid fa-clock-rotate-left"></i> Histórico</li>
-        </ul>
-        <div class="sidebar-footer">
-            <a href="#" class="logout-btn"><i class="fa-solid fa-arrow-right-from-bracket"></i> Cerrar sesión</a>
-        </div>
-    </aside>
-
-    <!-- Contenido Principal -->
-    <main class="main-content">
-        <!-- BOTÓN X: Redirige a solicitud-detalle.jsp con el índice -->
-        <button type="button" class="close-btn" onclick="volverADetalle()"><i class="fa-solid fa-xmark"></i></button>
-
+<main class="main">
+    <section class="panel">
         <!-- Stepper -->
-        <div class="stepper-container">
-            <div class="stepper-line"></div>
-            <div class="step active"><div class="step-icon"><i class="fa-regular fa-file-lines"></i></div><div class="step-label">Solicitud<br>creada</div></div>
-            <div class="step" id="step2"><div class="step-icon"><i class="fa-solid fa-file-export"></i></div><div class="step-label">Solicitud<br>enviada</div></div>
-            <div class="step"><div class="step-icon"><i class="fa-solid fa-file-circle-check"></i></div><div class="step-label">Solicitud<br>aceptada</div></div>
-            <div class="step"><div class="step-icon"><i class="fa-solid fa-file-signature"></i></div><div class="step-label">Carta<br>responsiva</div></div>
-            <div class="step"><div class="step-icon"><i class="fa-solid fa-file-circle-check"></i></div><div class="step-label">Carta<br>aceptada</div></div>
-            <div class="step"><div class="step-icon"><i class="fa-solid fa-bus"></i></div><div class="step-label">Visita en<br>curso</div></div>
-            <div class="step"><div class="step-icon"><i class="fa-solid fa-clipboard-list"></i></div><div class="step-label">Reporte<br>enviado</div></div>
-            <div class="step"><div class="step-icon"><i class="fa-solid fa-clipboard-check"></i></div><div class="step-label">Reporte<br>aceptado</div></div>
-            <div class="step"><div class="step-icon"><i class="fa-solid fa-circle-check"></i></div><div class="step-label">Visita<br>concretada</div></div>
+        <div class="stepper">
+            <div class="step done">
+                <div class="circle"><i class="bi bi-file-earmark"></i></div>
+                Solicitud creada
+            </div>
+            <div class="step active">
+                <div class="circle"><i class="bi bi-file-earmark-check"></i></div>
+                Solicitud enviada
+            </div>
+            <div class="step">
+                <div class="circle"><i class="bi bi-patch-check"></i></div>
+                Solicitud aceptada
+            </div>
+            <div class="step">
+                <div class="circle"><i class="bi bi-file-text"></i></div>
+                Carta enviada
+            </div>
+            <div class="step">
+                <div class="circle"><i class="bi bi-patch-check"></i></div>
+                Carta aceptada
+            </div>
+            <div class="step">
+                <div class="circle"><i class="bi bi-truck"></i></div>
+                Visita
+            </div>
+            <div class="step">
+                <div class="circle"><i class="bi bi-images"></i></div>
+                Reporte enviado
+            </div>
+            <div class="step">
+                <div class="circle"><i class="bi bi-check2"></i></div>
+                Reporte aceptado
+            </div>
         </div>
 
-        <!-- Upload Info -->
-        <div class="upload-header">
-            <div class="upload-title">
+        <!-- Header -->
+        <div class="title-row">
+            <div>
                 <h2>Imágenes y Documentos</h2>
-                <p>Adjunta imágenes (PNG, JPG, WEBP) y documentos (PDF)</p>
+                <div class="muted">Adjunta la solicitud firmada exclusivamente en formato PDF</div>
             </div>
-            <div class="upload-stats">
-                <strong id="files-count">0 de 10 archivos</strong>
-                <p id="files-size">0 Bytes de 100 MB</p>
+            <div class="muted" id="counter">
+                0 de 1 archivo<br>0 Bytes de 10 MB
             </div>
         </div>
 
-        <!-- Dropzone y Selector de Archivo de HTML real -->
-        <input type="file" id="real-file-input" accept=".pdf,.png,.jpg,.jpeg,.webp" style="display: none;">
+        <!-- Alertas -->
+        <c:if test="${not empty error}">
+            <div class="error"><c:out value="${error}"/></div>
+        </c:if>
 
-        <div class="dropzone" id="dropzone-area">
-            <button class="btn-browse" type="button" onclick="document.getElementById('real-file-input').click()">Explorar</button>
-            <p class="dropzone-text">Arrastra archivos aquí o <span onclick="document.getElementById('real-file-input').click()">selecciona</span></p>
-            <p class="dropzone-hint">PNG, JPG, WEBP, PDF • Máx. 10 MB por archivo</p>
-        </div>
+        <c:if test="${not empty documentoExistente}">
+            <div class="existing">
+                <i class="bi bi-info-circle"></i> Ya existe una solicitud con firmas:
+                <strong><c:out value="${documentoExistente.nombreArchivo}"/></strong>.
+                Al enviar otra, será reemplazada.
+            </div>
+        </c:if>
 
-        <!-- Tabla de Documentos (Oculta hasta seleccionar archivo) -->
-        <div class="table-container" id="table-container">
-            <table class="doc-table">
-                <thead>
-                <tr>
-                    <th width="10%">Tipo</th>
-                    <th width="25%">Nombre</th>
-                    <th width="15%">Tamaño</th>
-                    <th width="20%">Fecha</th>
-                    <th width="15%">Estado</th>
-                    <th width="15%" style="text-align:center;">Acciones</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr>
-                    <td class="td-icon" id="doc-type-icon"><i class="fa-regular fa-file-pdf"></i></td>
-                    <td id="doc-name">NombreArchivo.pdf</td>
-                    <td id="doc-size">0 KB</td>
-                    <td id="doc-date">--/--/----</td>
-                    <td><span class="badge-status">Borrador</span></td>
-                    <td>
-                        <div class="action-icons">
-                            <i class="fa-solid fa-trash-can" title="Eliminar" onclick="eliminarArchivo()"></i>
-                            <i class="fa-solid fa-download" title="Descargar" onclick="descargarArchivo()"></i>
-                            <i class="fa-solid fa-eye" title="Ver archivo" onclick="verArchivo()"></i>
-                        </div>
-                    </td>
-                </tr>
-                </tbody>
-            </table>
-        </div>
+        <!-- Formulario de subida -->
+        <form id="uploadForm" action="${ctx}/docente/subir-documento" method="post" enctype="multipart/form-data">
+            <input type="hidden" name="csrfToken" value="<c:out value='${sessionScope.csrfToken}'/>">
+            <input type="hidden" name="idVisita" value="${expediente.idVisita}">
+            <input type="hidden" name="tipo" value="SOLICITUD_VISITA">
 
-        <!-- Formulario para enviar al Servlet -->
-        <form id="uploadForm" action="subir-documento" method="POST">
-            <input type="hidden" name="csrfToken" value="${sessionScope.csrfToken}">
-            <footer class="action-buttons">
-                <!-- BOTÓN ANTERIOR: Redirige a solicitud-detalle.jsp con el índice -->
-                <button type="button" class="btn-action" onclick="volverADetalle()">Anterior</button>
-                <button type="submit" class="btn-action" id="btn-enviar" disabled>Enviar</button>
-            </footer>
+            <label class="drop" for="archivo">
+                <div>
+                    <button class="browse" type="button" onclick="document.getElementById('archivo').click()">Explorar</button>
+                    <strong>Arrastra el PDF aquí o selecciónalo</strong>
+                    <small>PDF · Máx. 10 MB por archivo</small>
+                </div>
+            </label>
+            <input id="archivo" name="archivo" type="file" accept="application/pdf,.pdf" hidden required>
+
+            <!-- Tabla del archivo cargado -->
+            <div class="table-wrap" id="tableWrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Tipo</th>
+                        <th>Nombre</th>
+                        <th>Tamaño</th>
+                        <th>Fecha</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>
+                            <i class="bi bi-file-earmark-pdf"></i><br>Solicitud
+                        </td>
+                        <td id="fileName"></td>
+                        <td id="fileSize"></td>
+                        <td id="fileDate"></td>
+                        <td><span class="badge">Borrador</span></td>
+                        <td>
+                            <button class="icon-btn" type="button" onclick="limpiar()" title="Eliminar">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                            <a class="icon-btn" id="download" download title="Descargar">
+                                <i class="bi bi-download"></i>
+                            </a>
+                            <a class="icon-btn" id="preview" target="_blank" title="Vista previa">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Botones de Acción -->
+            <div class="actions">
+                <a class="btn" href="${ctx}/detalle-solicitud?id=${expediente.idVisita}">Anterior</a>
+                <button class="btn" id="send" type="submit" disabled>Enviar</button>
+            </div>
         </form>
-    </main>
-</div>
+    </section>
+</main>
 
-<!-- Script de Comportamiento Dinámico -->
 <script>
-    const fileInput = document.getElementById('real-file-input');
-    const dropzone = document.getElementById('dropzone-area');
-    const tableContainer = document.getElementById('table-container');
-    const btnEnviar = document.getElementById('btn-enviar');
-    const step2 = document.getElementById('step2');
+    const input = document.getElementById('archivo');
+    const wrap = document.getElementById('tableWrap');
+    const send = document.getElementById('send');
+    const counter = document.getElementById('counter');
+    let objectUrl = null;
 
-    let archivoSeleccionado = null;
-
-    // Redirección a la vista de detalles respetando el índice actual
-    function volverADetalle() {
-        window.location.href = 'solicitud-detalle.jsp?index=<%= indexNum %>';
+    function formatSize(n) {
+        return n < 1024
+            ? n + ' B'
+            : n < 1048576
+                ? (n / 1024).toFixed(1) + ' KB'
+                : (n / 1048576).toFixed(1) + ' MB';
     }
 
-    // Escuchar el cambio en el selector de archivos
-    fileInput.addEventListener('change', function(e) {
-        if (this.files && this.files[0]) {
-            archivoSeleccionado = this.files[0];
-            cargarInformacionArchivo(archivoSeleccionado);
+    function cargar(file) {
+        if (!file) return;
+
+        const pdf = file.name.toLowerCase().endsWith('.pdf') && (!file.type || file.type === 'application/pdf');
+        if (!pdf) {
+            alert('Sólo se permiten archivos PDF.');
+            limpiar();
+            return;
+        }
+
+        if (file.size > 10 * 1024 * 1024) {
+            alert('El PDF no debe superar 10 MB.');
+            limpiar();
+            return;
+        }
+
+        if (objectUrl) URL.revokeObjectURL(objectUrl);
+        objectUrl = URL.createObjectURL(file);
+
+        document.getElementById('fileName').textContent = file.name;
+        document.getElementById('fileSize').textContent = formatSize(file.size);
+        document.getElementById('fileDate').textContent = new Date().toLocaleString('es-MX');
+        document.getElementById('preview').href = objectUrl;
+        document.getElementById('download').href = objectUrl;
+        document.getElementById('download').download = file.name;
+
+        counter.innerHTML = '1 de 1 archivo<br>' + formatSize(file.size) + ' de 10 MB';
+        wrap.style.display = 'block';
+        send.disabled = false;
+    }
+
+    function limpiar() {
+        input.value = '';
+        wrap.style.display = 'none';
+        send.disabled = true;
+        counter.innerHTML = '0 de 1 archivo<br>0 Bytes de 10 MB';
+        if (objectUrl) {
+            URL.revokeObjectURL(objectUrl);
+            objectUrl = null;
+        }
+    }
+
+    input.addEventListener('change', () => cargar(input.files[0]));
+
+    const drop = document.querySelector('.drop');
+    drop.addEventListener('dragover', e => e.preventDefault());
+    drop.addEventListener('drop', e => {
+        e.preventDefault();
+        if (e.dataTransfer.files.length) {
+            const dt = new DataTransfer();
+            dt.items.add(e.dataTransfer.files[0]);
+            input.files = dt.files;
+            cargar(input.files[0]);
         }
     });
 
-    function cargarInformacionArchivo(file) {
-        // 1. Nombre real
-        document.getElementById('doc-name').textContent = file.name;
-
-        // 2. Tamaño real formateado
-        const sizeInKB = (file.size / 1024).toFixed(1);
-        const sizeFormatted = sizeInKB > 1024 ? (sizeInKB / 1024).toFixed(2) + ' MB' : sizeInKB + ' KB';
-        document.getElementById('doc-size').textContent = sizeFormatted;
-
-        // 3. Fecha real del momento de subida
-        const ahora = new Date();
-        const fechaFormatted = ahora.toLocaleDateString() + ', ' + ahora.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-        document.getElementById('doc-date').textContent = fechaFormatted;
-
-        // 4. Ícono según extensión
-        const ext = file.name.split('.').pop().toLowerCase();
-        const iconElement = document.getElementById('doc-type-icon');
-        if (ext === 'pdf') {
-            iconElement.innerHTML = '<i class="fa-regular fa-file-pdf" style="color: #e11d48;"></i>';
-        } else {
-            iconElement.innerHTML = '<i class="fa-regular fa-file-image" style="color: #2563eb;"></i>';
+    document.getElementById('uploadForm').addEventListener('submit', e => {
+        if (!input.files.length) {
+            e.preventDefault();
+            alert('Selecciona la solicitud firmada en PDF.');
         }
-
-        // 5. Actualizar Estadísticas
-        document.getElementById('files-count').textContent = '1 de 5 archivos';
-        document.getElementById('files-size').textContent = sizeFormatted + ' de 100 MB';
-
-        // 6. Mostrar tabla, activar stepper y habilitar botón Enviar
-        tableContainer.style.display = 'block';
-        step2.classList.add('active');
-        btnEnviar.disabled = false;
-    }
-
-    // ACCIÓN: Eliminar archivo
-    function eliminarArchivo() {
-        fileInput.value = '';
-        archivoSeleccionado = null;
-        tableContainer.style.display = 'none';
-        step2.classList.remove('active');
-        btnEnviar.disabled = true;
-
-        document.getElementById('files-count').textContent = '0 de 10 archivos';
-        document.getElementById('files-size').textContent = '0 Bytes de 100 MB';
-    }
-
-    // ACCIÓN: Ojito (Ver archivo previa)
-    function verArchivo() {
-        if (archivoSeleccionado) {
-            const fileURL = URL.createObjectURL(archivoSeleccionado);
-            window.open(fileURL, '_blank');
-        }
-    }
-
-    // ACCIÓN: Descargar archivo real
-    function descargarArchivo() {
-        if (archivoSeleccionado) {
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(archivoSeleccionado);
-            a.download = archivoSeleccionado.name;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-        }
-    }
+    });
 </script>
 </body>
 </html>

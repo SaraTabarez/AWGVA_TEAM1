@@ -1,193 +1,207 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
-<%@ page import="mx.edu.utez.awgva.Model.SolicitudVisita" %>
-<%@ page import="java.util.List" %>
-<%
-  List<SolicitudVisita> lista = (List<SolicitudVisita>) session.getAttribute("listaSolicitudes");
-  SolicitudVisita sol = null;
-
-  String indexParam = request.getParameter("index");
-  if (lista != null && !lista.isEmpty()) {
-    if (indexParam != null) {
-      try {
-        int idx = Integer.parseInt(indexParam);
-        if (idx >= 0 && idx < lista.size()) {
-          sol = lista.get(idx);
-        }
-      } catch (NumberFormatException e) {
-        sol = lista.get(lista.size() - 1);
-      }
-    } else {
-      sol = lista.get(lista.size() - 1);
-    }
-  }
-%>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<c:set var="ctx" value="${pageContext.request.contextPath}"/>
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Vista Previa - Solicitud de Visita</title>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Vista previa de solicitud - AWGVA</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    body { display: flex; min-height: 100vh; background-color: #92a0b1; }
+    *{box-sizing:border-box}
+    body{margin:0;
+      background:#a9bbcf;
+      font-family:Arial,sans-serif;
+      color:#111}
 
-    @media print {
-      @page { size: letter portrait; margin: 8mm 10mm !important; }
-      html, body { background-color: #fff !important; height: 100% !important; overflow: hidden !important; }
-      .sidebar, .buttons, .no-print { display: none !important; }
-      .main-container { margin-left: 0 !important; width: 100% !important; padding: 0 !important; }
-      .form-wrapper { box-shadow: none !important; max-width: 100% !important; border: none !important; padding: 0 !important; }
-    }
+    .shell{margin-left:240px;
+      padding:26px;
+      min-height:100vh}
 
-    .main-container { margin-left: 240px; flex-grow: 1; padding: 20px; overflow-y: auto; }
-    .form-wrapper { background-color: white; padding: 30px 40px; border-radius: 4px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 950px; margin: 0 auto; }
+    .paper{width:min(820px,100%);
+      margin:auto;
+      background:#fff;
+      padding:34px 38px;
+      box-shadow:0 8px 28px rgba(0,0,0,.2)}
 
-    .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 12px; }
-    .header h1 { font-size: 18px; font-weight: bold; color: #000; text-transform: uppercase; }
-    .logo-box { border: 1px dashed #999; padding: 6px 15px; font-size: 11px; color: #666; font-weight: bold; }
+    .doc-head{display:flex;
+      justify-content:space-between;
+      align-items:center;
+      border-bottom:2px solid #1e3a5f;
+      padding-bottom:10px;
+      margin-bottom:12px}
 
-    .section-title { font-size: 13px; font-weight: bold; color: #1e293b; margin-top: 12px; margin-bottom: 6px; }
+    .doc-head h1{font-size:1.12rem;
+      margin:0}
 
-    table.doc-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 12px; }
-    table.doc-table th, table.doc-table td { border: 1px solid #000; padding: 4px 8px; vertical-align: middle; }
-    table.doc-table th { font-weight: bold; text-align: center; background-color: #f1f5f9; }
-    .data-value { font-weight: 600; color: #0f172a; min-height: 18px; }
+    .logo{font-size:1.2rem;
+      font-weight:900;
+      color:#679b3b}
 
-    .signatures-container { display: flex; justify-content: space-around; margin-top: 25px; text-align: center; }
-    .signature-box { width: 40%; display: flex; flex-direction: column; align-items: center; }
-    .signature-line { width: 100%; border-top: 1px solid #000; margin-top: 30px; margin-bottom: 4px; }
-    .signature-title { font-size: 13px; font-weight: bold; margin-bottom: 15px; }
-    .signature-name { font-size: 12px; font-weight: bold; color: #1e293b; }
+    .section{font-weight:800;
+      font-size:.78rem;
+      margin:14px 0 5px}
 
-    .buttons { display: flex; justify-content: space-between; margin-top: 25px; }
-    .btn { background-color: #f38218; color: white; border: none; padding: 10px 25px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 14px; text-decoration: none; }
-    .btn:hover { background-color: #d9700f; }
+    .grid{display:grid;
+      grid-template-columns:180px 1fr;
+      border:1px solid #9aa4ad;
+      border-bottom:0}
+
+    .grid div{padding:6px 8px;
+      border-bottom:1px solid #9aa4ad;
+      font-size:.72rem}
+
+    .grid div:nth-child(odd){font-weight:700;
+      border-right:1px solid #9aa4ad}
+
+    table{width:100%;
+      border-collapse:collapse;
+      font-size:.7rem;
+      margin-top:5px}
+
+    th,td{border:1px solid #9aa4ad;
+      padding:6px;
+      text-align:center}
+
+    .objective{border:1px solid #9aa4ad;
+      min-height:58px;
+      padding:8px;
+      font-size:.72rem}
+
+    .signatures{display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:70px;
+      margin:58px 40px 18px;
+      text-align:center;
+      font-size:.7rem}
+
+    .line{border-top:1px solid #222;
+      padding-top:7px}
+
+    .actions{display:flex;
+      justify-content:space-between;
+      margin-top:22px}
+
+    .btn{border:0;border-radius:5px;padding:9px 18px;font-weight:800;text-decoration:none;cursor:pointer}.back{background:#f3f4f6;color:#1e3a5f}.download{background:#f59120;color:#fff}
+    .alert{background:#fee2e2;color:#991b1b;padding:10px;margin-bottom:12px}
+    @media print{body{background:#fff}.shell{margin:0;padding:0}.sidebar,.actions,.alert{display:none!important}.paper{width:100%;box-shadow:none;padding:15mm}.signatures{margin-top:42px}@page{size:A4;margin:8mm}}
+    @media(max-width:800px){.shell{margin-left:0;padding:10px}.paper{padding:20px}.grid{grid-template-columns:130px 1fr}}
   </style>
 </head>
 <body>
-
 <jsp:include page="Layout/sidebar.jsp"/>
+<div class="shell"><article class="paper">
+  <c:if test="${not empty error}"><div class="alert"><c:out value="${error}"/></div></c:if>
+  <div class="doc-head"><h1>SOLICITUD DE VISITAS ACADÉMICAS</h1><span class="logo">UTEZ</span></div>
 
-<div class="main-container">
-  <div class="form-wrapper">
-    <div class="header">
-      <h1>SOLICITUD DE VISITAS ACADÉMICAS</h1>
-      <div class="logo-box">UTEZ</div>
+  <div class="section">Datos del lugar</div>
+  <div class="grid">
+    <div>Nombre de la empresa</div><div><c:out value="${solicitud.empresaNombre}"/></div>
+    <div>Dirección o lugar</div><div><c:out value="${solicitud.empresaDireccion}"/></div>
+    <div>Teléfono de contacto</div><div><c:out value="${solicitud.empresaTelefono}"/></div>
+    <div>Correo electrónico</div><div><c:out value="${solicitud.empresaEmail}"/></div>
+    <div>Fecha de inicio / término</div>
+    <div><c:out value="${solicitud.fechaInicio}"/>
+    al <c:out value="${solicitud.fechaTermino}"/>
+    · Hora: <c:out value="${solicitud.horaInicio}"/>
     </div>
-
-    <div class="section-title">Datos del Lugar</div>
-    <table class="doc-table">
-      <tr>
-        <td style="width: 25%; font-weight: bold;">Nombre de la empresa:</td>
-        <td class="data-value"><%= (sol != null && sol.getEmpresaNombre() != null) ? sol.getEmpresaNombre() : "" %></td>
-      </tr>
-      <tr>
-        <td style="font-weight: bold;">Dirección o lugar:</td>
-        <td class="data-value"><%= (sol != null && sol.getEmpresaDireccion() != null) ? sol.getEmpresaDireccion() : "" %></td>
-      </tr>
-      <tr>
-        <td style="font-weight: bold;">Teléfono de contacto:</td>
-        <td class="data-value"><%= (sol != null && sol.getEmpresaTelefono() != null) ? sol.getEmpresaTelefono() : "" %></td>
-      </tr>
-      <tr>
-        <td style="font-weight: bold;">Correo Electrónico:</td>
-        <td class="data-value"><%= (sol != null && sol.getEmpresaEmail() != null) ? sol.getEmpresaEmail() : "" %></td>
-      </tr>
-    </table>
-
-    <table class="doc-table">
-      <tr>
-        <td style="width: 25%; font-weight: bold;">Fecha de inicio:</td>
-        <td class="data-value" style="width: 25%;"><%= (sol != null && sol.getFechaInicio() != null) ? sol.getFechaInicio() : "" %></td>
-        <td style="width: 25%; font-weight: bold;">Hora de inicio:</td>
-        <td class="data-value" style="width: 25%;"><%= (sol != null && sol.getHoraInicio() != null) ? sol.getHoraInicio() : "" %></td>
-      </tr>
-      <tr>
-        <td style="font-weight: bold;">Fecha de término:</td>
-        <td class="data-value" colspan="3"><%= (sol != null && sol.getFechaTermino() != null) ? sol.getFechaTermino() : "" %></td>
-      </tr>
-      <tr>
-        <td style="font-weight: bold;">Objetivo:</td>
-        <td class="data-value" colspan="3" style="min-height: 35px; vertical-align: top;"><%= (sol != null && sol.getObjetivo() != null) ? sol.getObjetivo() : "" %></td>
-      </tr>
-    </table>
-
-    <div class="section-title">Datos de los Participantes</div>
-    <table class="doc-table">
-      <tr>
-        <td style="width: 25%; font-weight: bold;">Área solicitante:</td>
-        <td class="data-value" colspan="3"><%= (sol != null && sol.getSolicitanteCargo() != null) ? sol.getSolicitanteCargo() : "" %></td>
-      </tr>
-      <tr>
-        <td style="font-weight: bold;">Docente responsable:</td>
-        <td class="data-value" colspan="3"><%= (sol != null && sol.getSolicitanteNombre() != null) ? sol.getSolicitanteNombre() : "" %></td>
-      </tr>
-      <tr>
-        <td style="font-weight: bold;">Celular de responsable:</td>
-        <td class="data-value"><%= (sol != null && sol.getSolicitanteTelefono() != null) ? sol.getSolicitanteTelefono() : "" %></td>
-        <td style="font-weight: bold;">Docentes acompañantes:</td>
-        <td class="data-value"><%= (sol != null && sol.getDocentesAcompanantes() != null) ? sol.getDocentesAcompanantes() : "" %></td>
-      </tr>
-    </table>
-
-    <p style="font-size: 11px; font-weight: bold; margin-bottom: 4px;">No. de estudiantes participantes:</p>
-    <table class="doc-table" style="text-align: center;">
-      <thead>
-      <tr>
-        <th>DACEA</th>
-        <th>DATEFI</th>
-        <th>DATID</th>
-        <th>DAMI</th>
-        <th>Total estudiantes</th>
-      </tr>
-      </thead>
-      <tbody>
-      <tr>
-        <td><%= (sol != null && sol.getDacea() != null) ? sol.getDacea() : "0" %></td>
-        <td><%= (sol != null && sol.getDatefi() != null) ? sol.getDatefi() : "0" %></td>
-        <td><%= (sol != null && sol.getDatid() != null) ? sol.getDatid() : "0" %></td>
-        <td><%= (sol != null && sol.getDami() != null) ? sol.getDami() : "0" %></td>
-        <td style="font-weight: bold;"><%= (sol != null && sol.getTotalEstudiantes() != null) ? sol.getTotalEstudiantes() : "0" %></td>
-      </tr>
-      </tbody>
-    </table>
-
-    <div style="margin-top: 8px;">
-      <p style="font-size: 11px; font-weight: bold; margin-bottom: 4px;">Asignaturas que se reforzarán</p>
-      <div style="border: 1px solid #000; padding: 6px; min-height: 35px; font-size: 12px;">
-        <%= (sol != null && sol.getAsignaturas() != null) ? sol.getAsignaturas() : "" %>
-      </div>
-    </div>
-
-    <!-- AMBAS FIRMAS AL PIE DE PÁGINA -->
-    <div class="signatures-container">
-      <div class="signature-box">
-        <div class="signature-title">Solicita</div>
-        <div class="signature-line"></div>
-        <div class="signature-name"><%= (sol != null && sol.getSolicitanteNombre() != null) ? sol.getSolicitanteNombre() : "" %></div>
-      </div>
-
-      <div class="signature-box">
-        <div class="signature-title">Autoriza</div>
-        <div class="signature-line"></div>
-        <div class="signature-name">&nbsp;</div>
-      </div>
-    </div>
-
-    <div class="buttons">
-      <a href="solicitud.jsp" class="btn">Volver a Solicitudes</a>
-      <button type="button" class="btn" onclick="window.print()">Descargar / Imprimir</button>
-    </div>
-
   </div>
+  <div class="section">Objetivo de la visita</div><div class="objective"><c:out value="${solicitud.objetivo}"/></div>
+
+  <div class="section">Datos de los participantes</div>
+  <div class="grid">
+    <div>Área solicitante</div><div><c:out value="${divisionDocente}"/></div>
+    <div>Docente responsable</div><div><c:out value="${solicitud.solicitanteNombre}"/></div>
+    <div>Teléfono del solicitante</div><div><c:out value="${solicitud.solicitanteTelefono}"/></div>
+    <div>Docentes acompañantes</div><div><c:out value="${solicitud.docentesAcompanantes}"/></div>
+  </div>
+  <table>
+    <thead>
+    <tr>
+      <th>DACEA</th>
+      <th>DATEFI</th>
+      <th>DATID</th>
+      <th>DAMI</th>
+      <th>Total</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+      <td><c:out value="${solicitud.dacea}"/></td>
+      <td><c:out value="${solicitud.datefi}"/></td>
+      <td><c:out value="${solicitud.datid}"/></td>
+      <td><c:out value="${solicitud.dami}"/></td>
+      <td><c:out value="${solicitud.totalEstudiantes}"/></td>
+    </tr>
+    </tbody>
+  </table>
+  <div class="section">Información académica</div>
+  <table>
+    <thead>
+    <tr>
+      <th>Programa educativo</th>
+      <th>Cuatrimestre</th>
+      <th>Grupo</th>
+      <th>No. estudiantes</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+      <td><c:out value="${solicitud.programaEducativo}"/></td>
+      <td><c:out value="${solicitud.semestre}"/></td>
+      <td><c:out value="${solicitud.grupo}"/></td>
+      <td><c:out value="${solicitud.totalEstudiantes}"/></td>
+    </tr>
+    </tbody>
+  </table>
+  <div class="section">Asignaturas que se reforzarán con la visita</div>
+  <div class="objective"><c:out value="${solicitud.asignaturas}"/></div>
+
+  <div class="signatures">
+    <div><strong>Solicita</strong>
+      <div class="line">Nombre del docente responsable<br>de la visita</div>
+    </div>
+    <div>
+      <strong>Autoriza</strong>
+      <div class="line">Nombre y cargo del director de<br><c:out value="${divisionDocente}"/></div>
+    </div>
+  </div>
+
+  <div class="actions">
+    <c:choose><c:when test="${empty idVisita}">
+      <a class="btn back" href="${ctx}/nueva-solicitud?editar=1">Atrás</a>
+    </c:when>
+      <c:otherwise>
+      <a class="btn back" href="${ctx}/detalle-solicitud?id=${idVisita}">Atrás</a>
+      </c:otherwise>
+    </c:choose>
+
+    <c:choose>
+      <c:when test="${empty idVisita}">
+        <form action="${ctx}/confirmar-solicitud" method="post">
+          <input type="hidden" name="csrfToken" value="<c:out value='${sessionScope.csrfToken}'/>">
+          <button class="btn download" type="submit">Descargar</button>
+        </form>
+      </c:when>
+
+      <c:otherwise>
+        <button class="btn download" type="button" onclick="descargarExistente()">Descargar</button>
+      </c:otherwise>
+    </c:choose>
+  </div>
+</article>
 </div>
-
 <script>
-  // Al descargar/imprimir, redirige automáticamente a solicitudes
-  window.onafterprint = function () {
-    window.location.href = "solicitud.jsp";
-  };
+  const ctx='${ctx}', idVisita='${idVisita}', csrf='<c:out value="${sessionScope.csrfToken}"/>';
+  let redirectAfterPrint=false;
+  function imprimir(){redirectAfterPrint=true;window.print();}
+  async function descargarExistente(){
+    const body=new URLSearchParams({csrfToken:csrf,idVisita:idVisita,tipo:'SOLICITUD_VISITA'});
+    try{await fetch(ctx+'/docente/marcar-descarga',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body});}catch(e){}
+    imprimir();
+  }
+  window.addEventListener('afterprint',()=>{if(redirectAfterPrint&&idVisita)location.href=ctx+'/detalle-solicitud?id='+idVisita;});
+  <c:if test="${autoPrint}">window.addEventListener('load',()=>setTimeout(imprimir,300));</c:if>
 </script>
-
 </body>
 </html>
