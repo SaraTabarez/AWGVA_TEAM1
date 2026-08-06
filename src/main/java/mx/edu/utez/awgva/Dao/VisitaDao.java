@@ -1,3 +1,4 @@
+
 package mx.edu.utez.awgva.Dao;
 
 import mx.edu.utez.awgva.Model.Empresa;
@@ -71,10 +72,19 @@ public class VisitaDao {
                 statement -> statement.setLong(1, idUsuario));
     }
 
+    /** Solicitudes que aún no han enviado el reporte final. */
+    public List<ExpedienteVisita> listarSolicitudesActivasDocente(Long idUsuario) {
+        return consultarLista(BASE_SELECT
+                        + "WHERE v.ID_USUARIO_FK = ? AND rep.ESTADO_REPORTE IS NULL "
+                        + "AND UPPER(v.ESTADO) <> 'COMPLETADA' ORDER BY v.CREADO_EN DESC",
+                statement -> statement.setLong(1, idUsuario));
+    }
+
+    /** Reportes enviados que todavía no han sido aceptados por Estadías. */
     public List<ExpedienteVisita> listarReportesDelDocente(Long idUsuario) {
         return consultarLista(BASE_SELECT
                         + "WHERE v.ID_USUARIO_FK = ? AND rep.ESTADO_REPORTE IS NOT NULL "
-                        + "ORDER BY v.CREADO_EN DESC",
+                        + "AND UPPER(v.ESTADO) <> 'COMPLETADA' ORDER BY v.CREADO_EN DESC",
                 statement -> statement.setLong(1, idUsuario));
     }
 

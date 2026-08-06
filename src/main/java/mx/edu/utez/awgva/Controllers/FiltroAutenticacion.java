@@ -37,7 +37,9 @@ public class FiltroAutenticacion extends HttpFilter {
     );
 
     private static final Set<String> DOCENTE_PATHS = Set.of(
-            "/mis-solicitudes", "/nueva-solicitud", "/detalle-solicitud",
+            "/mis-solicitudes", "/nueva-solicitud", "/solicitud-previa", "/confirmar-solicitud",
+            "/detalle-solicitud", "/carta-responsiva", "/oficio-autorizacion",
+            "/subir-solicitud-firmada", "/subir-carta-firmada", "/docente/marcar-descarga",
             "/reportes-docente", "/historico-docente", "/reporte-docente",
             "/docente/subir-documento", "/docente/subir-reporte",
             "/solicitud.jsp", "/nueva-solicitud.jsp", "/solicitud",
@@ -61,7 +63,8 @@ public class FiltroAutenticacion extends HttpFilter {
     );
 
     private static final Set<String> CSRF_PROTECTED_POST_PATHS = Set.of(
-            "/nueva-solicitud", "/docente/subir-documento", "/docente/subir-reporte",
+            "/nueva-solicitud", "/confirmar-solicitud", "/docente/marcar-descarga",
+            "/docente/subir-documento", "/docente/subir-reporte",
             "/estadias/revisar", "/cambiar-contrasena",
             "/logout", "/solicitud", "/solicitud-servlet", "/UploadServlet",
             "/upload-servlet", "/subir-documento", "/cartaEnviadaExito.jsp",
