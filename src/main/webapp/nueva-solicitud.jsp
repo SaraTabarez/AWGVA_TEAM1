@@ -2,7 +2,7 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
-<c:set var="ctx" value="${pageContext.requestgit.contextPath}"/>
+<c:set var="ctx" value="${pageContext.request.contextPath}"/>
 <c:set var="division" value="${fn:toUpperCase(sessionScope.usuario.nombreDivision)}"/>
 <!DOCTYPE html>
 <html lang="es">
