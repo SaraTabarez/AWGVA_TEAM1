@@ -23,6 +23,7 @@ public class Usuario {
     // Campos auxiliares para la tabla de la vista
     private String nombreRol;
     private String nombreDivision;
+    private String referenceToken;
 
     public Usuario() {
     }
@@ -208,5 +209,13 @@ public class Usuario {
 
     public void setPassword(String password) {
         this.passwordHash = password;
+    }
+
+    public String getReferenceToken() {
+        return referenceToken;
+    }
+
+    public void setReferenceToken(String referenceToken) {
+        this.referenceToken = referenceToken;
     }
 }

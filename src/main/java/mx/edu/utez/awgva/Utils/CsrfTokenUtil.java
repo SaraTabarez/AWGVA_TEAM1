@@ -11,9 +11,28 @@ import java.util.Base64;
 public final class CsrfTokenUtil {
 
     public static final String SESSION_ATTRIBUTE = "csrfToken";
+    public static final String PARAMETER_NAME = "csrfToken";
+    public static final String HEADER_NAME = "X-CSRF-Token";
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private CsrfTokenUtil() {
+    }
+
+    public static String getOrCreate(HttpSession session) {
+        if (session == null) {
+            throw new IllegalArgumentException("La sesión es obligatoria.");
+        }
+        Object value = session.getAttribute(SESSION_ATTRIBUTE);
+        if (value instanceof String token && !token.isBlank()) {
+            return token;
+        }
+        synchronized (session) {
+            value = session.getAttribute(SESSION_ATTRIBUTE);
+            if (value instanceof String token && !token.isBlank()) {
+                return token;
+            }
+            return rotate(session);
+        }
     }
 
     public static String rotate(HttpSession session) {

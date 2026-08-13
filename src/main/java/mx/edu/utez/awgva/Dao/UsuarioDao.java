@@ -1,4 +1,4 @@
-package mx.edu.utez.awgva.Dao;
+ppackage mx.edu.utez.awgva.Dao;
 
 import mx.edu.utez.awgva.Model.Usuario;
 import mx.edu.utez.awgva.Utils.DatabaseConnection;
@@ -219,6 +219,19 @@ public class UsuarioDao {
             return statement.executeUpdate() == 1;
         } catch (SQLException exception) {
             System.err.println("No fue posible actualizar la contraseña: " + exception.getMessage());
+            return false;
+        }
+    }
+
+    public boolean clearResetToken(String correo) {
+        String sql = "UPDATE USUARIO SET RESET_TOKEN = NULL, RESET_TOKEN_EXPIRATION = NULL, "
+                + "ACTUALIZADO_EN = CURRENT_TIMESTAMP WHERE LOWER(CORREO) = LOWER(?)";
+        try (Connection connection = DatabaseConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, correo);
+            return statement.executeUpdate() == 1;
+        } catch (SQLException exception) {
+            System.err.println("No fue posible limpiar el código de recuperación: " + exception.getMessage());
             return false;
         }
     }

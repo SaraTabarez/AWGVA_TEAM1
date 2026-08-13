@@ -11,13 +11,16 @@ import mx.edu.utez.awgva.Model.ExpedienteVisita;
 import mx.edu.utez.awgva.Model.Usuario;
 import mx.edu.utez.awgva.Service.DocumentoService;
 import mx.edu.utez.awgva.Service.VisitaService;
+import mx.edu.utez.awgva.Utils.EmailSender;
+import mx.edu.utez.awgva.Utils.RecordTokenUtil;
+import mx.edu.utez.awgva.Utils.TokenViewUtil;
 
 import java.io.IOException;
+import java.util.List;
 
-/** Gestión de los tres documentos de Estadías y su histórico global. */
 @WebServlet(name = "EstadiasServlet", urlPatterns = {
         "/estadias/documentos", "/estadias/documento", "/estadias/reporte",
-        "/estadias/historico", "/estadias/revisar",
+        "/estadias/historico", "/estadias/expediente", "/estadias/revisar",
         "/estadias/documento-aceptado", "/estadias/documento-rechazado",
         "/estadias/reporte-aceptado", "/estadias/reporte-rechazado"
 })
@@ -27,29 +30,29 @@ public class EstadiasServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        switch (request.getServletPath()) {
-            case "/estadias/documentos" -> bandeja(request, response);
-            case "/estadias/documento" -> revisarDocumento(request, response);
-            case "/estadias/reporte" -> revisarReporte(request, response);
-            case "/estadias/historico" -> historico(request, response);
-            case "/estadias/documento-aceptado" -> resultado(request, response, "documento-aceptado.jsp");
-            case "/estadias/documento-rechazado" -> resultado(request, response, "documento-rechazado.jsp");
-            case "/estadias/reporte-aceptado" -> resultado(request, response, "reporte-aceptado.jsp");
-            case "/estadias/reporte-rechazado" -> resultado(request, response, "reporte-rechazado.jsp");
-            default -> response.sendError(HttpServletResponse.SC_NOT_FOUND);
-        }
+            throws IOException {
+        response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
     }
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws IOException, ServletException {
-        if (!"/estadias/revisar".equals(request.getServletPath())) {
-            response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
-            return;
-        }
         request.setCharacterEncoding("UTF-8");
-        Long idDocumento = id(request, "idDocumento");
+        switch (request.getServletPath()) {
+            case "/estadias/documentos" -> bandeja(request, response);
+            case "/estadias/documento" -> revisarDocumento(request, response);
+            case "/estadias/reporte" -> revisarReporte(request, response);
+            case "/estadias/historico" -> historico(request, response);
+            case "/estadias/expediente" -> expedienteHistorico(request, response);
+            case "/estadias/revisar" -> revisar(request, response);
+            default -> response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
+        }
+    }
+
+    private void revisar(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        Usuario revisor = usuario(request);
+        Long idDocumento = documentoId(request, revisor);
         Documento documento = documentoService.buscarPorId(idDocumento);
         if (documento == null) {
             response.sendError(HttpServletResponse.SC_NOT_FOUND);
@@ -57,23 +60,28 @@ public class EstadiasServlet extends HttpServlet {
         }
         String decision = request.getParameter("decision");
         try {
-            Usuario revisor = usuario(request);
             if (!documentoService.revisar(idDocumento, decision,
                     request.getParameter("observaciones"), revisor.getIdUsuario())) {
                 throw new IllegalArgumentException("No fue posible actualizar el documento.");
             }
-            boolean reporte = "REPORTE".equalsIgnoreCase(documento.getTipoDocumento());
+            Documento actualizado = documentoService.buscarPorId(idDocumento);
+            notificar(actualizado, decision, request.getParameter("observaciones"));
+            boolean reporte = "REPORTE".equalsIgnoreCase(actualizado.getTipoDocumento());
             boolean aceptar = "ACEPTAR".equalsIgnoreCase(decision);
-            String ruta = reporte
-                    ? (aceptar ? "/estadias/reporte-aceptado" : "/estadias/reporte-rechazado")
-                    : (aceptar ? "/estadias/documento-aceptado" : "/estadias/documento-rechazado");
-            response.sendRedirect(request.getContextPath() + ruta + "?idDocumento=" + idDocumento);
+            request.setAttribute("documento", actualizado);
+            request.getRequestDispatcher("/WEB-INF/views/estadias/" + (reporte
+                            ? (aceptar ? "reporte-aceptado.jsp" : "reporte-rechazado.jsp")
+                            : (aceptar ? "documento-aceptado.jsp" : "documento-rechazado.jsp")))
+                    .forward(request, response);
         } catch (IllegalArgumentException exception) {
             request.setAttribute("error", exception.getMessage());
             request.setAttribute("documento", documento);
             request.setAttribute("expediente", visitaService.buscarParaEstadias(documento.getIdVisitaFk()));
+            TokenViewUtil.decorateDocument(request, revisor, documento);
             if ("REPORTE".equalsIgnoreCase(documento.getTipoDocumento())) {
-                request.setAttribute("evidencias", documentoService.listarEvidenciasReporte(documento.getIdVisitaFk()));
+                List<Documento> evidencias = documentoService.listarEvidenciasReporte(documento.getIdVisitaFk());
+                TokenViewUtil.decorateDocuments(request, revisor, evidencias);
+                request.setAttribute("evidencias", evidencias);
                 request.getRequestDispatcher("/WEB-INF/views/estadias/revisar-reporte.jsp").forward(request, response);
             } else {
                 request.getRequestDispatcher("/WEB-INF/views/estadias/revisar-documento.jsp").forward(request, response);
@@ -83,12 +91,17 @@ public class EstadiasServlet extends HttpServlet {
 
     private void bandeja(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        Usuario usuario = usuario(request);
         try {
-            request.setAttribute("documentos", documentoService.listarParaEstadias(
-                    request.getParameter("q"), request.getParameter("tipo")));
+            List<Documento> documentos = documentoService.listarParaEstadias(
+                    request.getParameter("q"), request.getParameter("tipo"));
+            TokenViewUtil.decorateDocuments(request, usuario, documentos);
+            request.setAttribute("documentos", documentos);
         } catch (IllegalArgumentException exception) {
             request.setAttribute("error", exception.getMessage());
-            request.setAttribute("documentos", documentoService.listarParaEstadias(null, null));
+            List<Documento> documentos = documentoService.listarParaEstadias(null, null);
+            TokenViewUtil.decorateDocuments(request, usuario, documentos);
+            request.setAttribute("documentos", documentos);
         }
         request.getRequestDispatcher("/WEB-INF/views/estadias/documentos.jsp").forward(request, response);
     }
@@ -98,9 +111,10 @@ public class EstadiasServlet extends HttpServlet {
         Documento documento = documento(request, response);
         if (documento == null) return;
         if ("REPORTE".equalsIgnoreCase(documento.getTipoDocumento())) {
-            response.sendRedirect(request.getContextPath() + "/estadias/reporte?idDocumento=" + documento.getIdDocumento());
+            revisarReporteCargado(request, response, documento);
             return;
         }
+        TokenViewUtil.decorateDocument(request, usuario(request), documento);
         request.setAttribute("documento", documento);
         request.setAttribute("expediente", visitaService.buscarParaEstadias(documento.getIdVisitaFk()));
         request.getRequestDispatcher("/WEB-INF/views/estadias/revisar-documento.jsp").forward(request, response);
@@ -114,40 +128,80 @@ public class EstadiasServlet extends HttpServlet {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, "El documento no es un reporte.");
             return;
         }
+        revisarReporteCargado(request, response, documento);
+    }
+
+    private void revisarReporteCargado(HttpServletRequest request, HttpServletResponse response,
+                                       Documento documento) throws ServletException, IOException {
+        Usuario usuario = usuario(request);
+        TokenViewUtil.decorateDocument(request, usuario, documento);
         request.setAttribute("documento", documento);
         request.setAttribute("expediente", visitaService.buscarParaEstadias(documento.getIdVisitaFk()));
-        request.setAttribute("evidencias", documentoService.listarEvidenciasReporte(documento.getIdVisitaFk()));
+        List<Documento> evidencias = documentoService.listarEvidenciasReporte(documento.getIdVisitaFk());
+        TokenViewUtil.decorateDocuments(request, usuario, evidencias);
+        request.setAttribute("evidencias", evidencias);
         request.getRequestDispatcher("/WEB-INF/views/estadias/revisar-reporte.jsp").forward(request, response);
     }
 
     private void historico(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        request.setAttribute("solicitudes", visitaService.listarHistoricoEstadias(request.getParameter("q")));
+        Usuario usuario = usuario(request);
+        List<ExpedienteVisita> solicitudes = visitaService.listarHistoricoEstadias(request.getParameter("q"));
+        for (ExpedienteVisita solicitud : solicitudes) {
+            solicitud.setReferenceToken(RecordTokenUtil.issue(request.getSession(), usuario.getIdUsuario(),
+                    "estadias-visita", solicitud.getIdVisita()));
+        }
+        request.setAttribute("solicitudes", solicitudes);
         request.getRequestDispatcher("/WEB-INF/views/estadias/historico.jsp").forward(request, response);
     }
 
-    private void resultado(HttpServletRequest request, HttpServletResponse response, String vista)
+    private void expedienteHistorico(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        Documento documento = documento(request, response);
-        if (documento == null) return;
-        request.setAttribute("documento", documento);
-        request.getRequestDispatcher("/WEB-INF/views/estadias/" + vista).forward(request, response);
+        Usuario usuario = usuario(request);
+        Long id = RecordTokenUtil.requireId(request.getSession(false), usuario.getIdUsuario(),
+                "estadias-visita", request.getParameter("ref"));
+        ExpedienteVisita expediente = visitaService.buscarParaEstadias(id);
+        if (expediente == null) {
+            response.sendError(HttpServletResponse.SC_NOT_FOUND);
+            return;
+        }
+        List<Documento> documentos = documentoService.listarPorVisita(id);
+        TokenViewUtil.decorateDocuments(request, usuario, documentos);
+        expediente.setDocumentos(documentos);
+        request.setAttribute("expediente", expediente);
+        request.getRequestDispatcher("/WEB-INF/views/estadias/expediente.jsp").forward(request, response);
     }
 
     private Documento documento(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        Documento documento = documentoService.buscarPorId(id(request, "idDocumento"));
+        Usuario usuario = usuario(request);
+        Documento documento = documentoService.buscarPorId(documentoId(request, usuario));
         if (documento == null) response.sendError(HttpServletResponse.SC_NOT_FOUND);
         return documento;
     }
 
-    private Long id(HttpServletRequest request, String nombre) {
+    private Long documentoId(HttpServletRequest request, Usuario usuario) {
+        return RecordTokenUtil.requireId(request.getSession(false), usuario.getIdUsuario(),
+                "documento-revision", request.getParameter("ref"));
+    }
+
+    private void notificar(Documento documento, String decision, String observaciones) {
+        if (documento == null) return;
+        ExpedienteVisita expediente = visitaService.buscarParaEstadias(documento.getIdVisitaFk());
+        if (expediente == null || expediente.getCorreoDocente() == null) return;
+        boolean aceptado = "ACEPTAR".equalsIgnoreCase(decision);
+        String mensaje = aceptado
+                ? "Estadías aceptó tu " + documento.getTipoLegible() + ". Ya puedes continuar con la siguiente etapa."
+                : "Estadías rechazó tu " + documento.getTipoLegible()
+                + ". Puedes sustituir únicamente el archivo observado. Motivo: " + observaciones;
         try {
-            long value = Long.parseLong(request.getParameter(nombre));
-            if (value < 1) throw new NumberFormatException();
-            return value;
-        } catch (NumberFormatException exception) {
-            throw new IllegalArgumentException("Identificador no válido.");
-        }
+            EmailSender.sendMail(expediente.getCorreoDocente(), "Actualización de documentos AWGVA",
+                    "<html><body><p>" + html(mensaje) + "</p></body></html>");
+        } catch (RuntimeException ignored) { }
+    }
+
+    private String html(String value) {
+        return value == null ? "" : value.replace("&", "&amp;").replace("<", "&lt;")
+                .replace(">", "&gt;").replace("\"", "&quot;").replace("'", "&#39;");
     }
 
     private Usuario usuario(HttpServletRequest request) {

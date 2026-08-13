@@ -34,13 +34,23 @@ public class VisitaDao {
             + "JOIN USUARIO u ON u.ID_USUARIO = v.ID_USUARIO_FK "
             + "JOIN DIVISION d ON d.ID_DIVISION = v.ID_DIVISION_FK "
             + "JOIN EMPRESA e ON e.ID_EMPRESA = v.ID_EMPRESA_FK "
-            + "LEFT JOIN GRUPO_VISITA g ON g.ID_VISITA_FK = v.ID_VISITA "
+            + "LEFT JOIN (SELECT ID_VISITA_FK, "
+            + "LISTAGG(PROGRAMA_EDUCATIVO, ', ') WITHIN GROUP (ORDER BY ID_GRUPO) AS PROGRAMA_EDUCATIVO, "
+            + "LISTAGG(SEMESTRE, ', ') WITHIN GROUP (ORDER BY ID_GRUPO) AS SEMESTRE, "
+            + "LISTAGG(NOMBRE_GRUPO, ', ') WITHIN GROUP (ORDER BY ID_GRUPO) AS NOMBRE_GRUPO, "
+            + "SUM(NUMERO_ESTUDIANTES) AS NUMERO_ESTUDIANTES "
+            + "FROM GRUPO_VISITA GROUP BY ID_VISITA_FK) g ON g.ID_VISITA_FK = v.ID_VISITA "
             + "LEFT JOIN (SELECT ID_VISITA_FK, "
             + "MAX(ESTADO) KEEP (DENSE_RANK LAST ORDER BY SUBIDO_EN) AS ESTADO_REPORTE "
             + "FROM DOCUMENTO WHERE UPPER(TIPO_DOCUMENTO) = 'REPORTE' GROUP BY ID_VISITA_FK) rep "
             + "ON rep.ID_VISITA_FK = v.ID_VISITA ";
 
     public boolean guardarVisitaCompleta(Visita visita, Empresa empresa, GrupoVisita grupo) {
+        return guardarVisitaCompleta(visita, empresa, List.of(grupo));
+    }
+
+    public boolean guardarVisitaCompleta(Visita visita, Empresa empresa, List<GrupoVisita> grupos) {
+        if (grupos == null || grupos.isEmpty()) return false;
         try (Connection connection = DatabaseConnection.getConnection()) {
             connection.setAutoCommit(false);
             try {
@@ -51,8 +61,10 @@ public class VisitaDao {
                 }
 
                 Long idVisita = insertarVisita(connection, visita);
-                grupo.setIdVisitaFk(idVisita);
-                insertarGrupoVisita(connection, grupo);
+                for (GrupoVisita grupo : grupos) {
+                    grupo.setIdVisitaFk(idVisita);
+                    insertarGrupoVisita(connection, grupo);
+                }
                 connection.commit();
                 visita.setIdVisita(idVisita);
                 return true;
@@ -72,18 +84,18 @@ public class VisitaDao {
                 statement -> statement.setLong(1, idUsuario));
     }
 
-    /** Solicitudes que aún no han enviado el reporte final. */
     public List<ExpedienteVisita> listarSolicitudesActivasDocente(Long idUsuario) {
         return consultarLista(BASE_SELECT
-                        + "WHERE v.ID_USUARIO_FK = ? AND rep.ESTADO_REPORTE IS NULL "
-                        + "AND UPPER(v.ESTADO) <> 'COMPLETADA' ORDER BY v.CREADO_EN DESC",
+                        + "WHERE v.ID_USUARIO_FK = ? "
+                        + "AND UPPER(v.ESTADO) NOT IN ('OFICIO_GENERADO','REPORTE_EN_REVISION',"
+                        + "'REPORTE_RECHAZADO','COMPLETADA') ORDER BY v.CREADO_EN DESC",
                 statement -> statement.setLong(1, idUsuario));
     }
 
-    /** Reportes enviados que todavía no han sido aceptados por Estadías. */
     public List<ExpedienteVisita> listarReportesDelDocente(Long idUsuario) {
         return consultarLista(BASE_SELECT
-                        + "WHERE v.ID_USUARIO_FK = ? AND rep.ESTADO_REPORTE IS NOT NULL "
+                        + "WHERE v.ID_USUARIO_FK = ? AND (rep.ESTADO_REPORTE IS NOT NULL "
+                        + "OR UPPER(v.ESTADO) IN ('OFICIO_GENERADO','REPORTE_EN_REVISION','REPORTE_RECHAZADO')) "
                         + "AND UPPER(v.ESTADO) <> 'COMPLETADA' ORDER BY v.CREADO_EN DESC",
                 statement -> statement.setLong(1, idUsuario));
     }
@@ -152,7 +164,8 @@ public class VisitaDao {
             parametros.add(normalizarEstado(estado));
         }
         if (carrera != null && !carrera.isBlank()) {
-            sql.append("AND UPPER(g.PROGRAMA_EDUCATIVO) = UPPER(?) ");
+            sql.append("AND EXISTS (SELECT 1 FROM GRUPO_VISITA gf WHERE gf.ID_VISITA_FK = v.ID_VISITA "
+                    + "AND UPPER(gf.PROGRAMA_EDUCATIVO) = UPPER(?)) ");
             parametros.add(carrera.trim());
         }
         sql.append("ORDER BY v.CREADO_EN DESC");
@@ -186,6 +199,21 @@ public class VisitaDao {
         }
     }
 
+    public boolean marcarOficioGenerado(Long idVisita, Long idUsuario) {
+        String sql = "UPDATE VISITA SET ESTADO = 'OFICIO_GENERADO', ACTUALIZADO_EN = CURRENT_TIMESTAMP "
+                + "WHERE ID_VISITA = ? AND ID_USUARIO_FK = ? "
+                + "AND UPPER(ESTADO) IN ('CARTA_APROBADA_ESTADIAS','OFICIO_GENERADO')";
+        try (Connection connection = DatabaseConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setLong(1, idVisita);
+            statement.setLong(2, idUsuario);
+            return statement.executeUpdate() == 1;
+        } catch (SQLException exception) {
+            System.err.println("No fue posible registrar el oficio: " + exception.getMessage());
+            return false;
+        }
+    }
+
     /** Histórico total de Estadías: toda visita que haya entregado algún documento. */
     public List<ExpedienteVisita> listarHistoricoEstadias(String busqueda) {
         StringBuilder sql = new StringBuilder(BASE_SELECT)
@@ -208,6 +236,32 @@ public class VisitaDao {
     public ExpedienteVisita buscarParaEstadias(Long idVisita) {
         return consultarUno(BASE_SELECT + "WHERE v.ID_VISITA = ?",
                 statement -> statement.setLong(1, idVisita));
+    }
+
+    public List<GrupoVisita> listarGrupos(Long idVisita) {
+        List<GrupoVisita> grupos = new ArrayList<>();
+        String sql = "SELECT ID_GRUPO, ID_VISITA_FK, PROGRAMA_EDUCATIVO, SEMESTRE, "
+                + "NOMBRE_GRUPO, NUMERO_ESTUDIANTES FROM GRUPO_VISITA "
+                + "WHERE ID_VISITA_FK = ? ORDER BY ID_GRUPO";
+        try (Connection connection = DatabaseConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setLong(1, idVisita);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    GrupoVisita grupo = new GrupoVisita();
+                    grupo.setIdGrupo(resultSet.getLong("ID_GRUPO"));
+                    grupo.setIdVisitaFk(resultSet.getLong("ID_VISITA_FK"));
+                    grupo.setProgramaEducativo(resultSet.getString("PROGRAMA_EDUCATIVO"));
+                    grupo.setSemestre(resultSet.getString("SEMESTRE"));
+                    grupo.setNombreGrupo(resultSet.getString("NOMBRE_GRUPO"));
+                    grupo.setNumeroEstudiantes(resultSet.getInt("NUMERO_ESTUDIANTES"));
+                    grupos.add(grupo);
+                }
+            }
+        } catch (SQLException exception) {
+            System.err.println("No fue posible consultar el desglose de alumnos: " + exception.getMessage());
+        }
+        return grupos;
     }
 
     /** Compatibilidad con módulos existentes del ZIP 3. */
