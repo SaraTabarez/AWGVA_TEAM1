@@ -10,9 +10,11 @@ import jakarta.servlet.http.HttpSession;
 import mx.edu.utez.awgva.Model.TipoRol;
 import mx.edu.utez.awgva.Model.Usuario;
 import mx.edu.utez.awgva.Utils.CsrfTokenUtil;
+import mx.edu.utez.awgva.Utils.PostNavigationResponse;
 
 import java.io.IOException;
 import java.util.Set;
+import java.util.Map;
 
 /**
  * Autenticación y autorización centralizadas. El menú mejora la experiencia,
@@ -33,7 +35,9 @@ public class FiltroAutenticacion extends HttpFilter {
             "/GestionUsuariosServlet", "/RegistrarUsuarioServlet",
             "/EliminarUsuarioServlet", "/ActualizarEstadoUsuarioServlet",
             "/admin/usuarios", "/admin/usuarios/alta", "/admin/usuarios/eliminar",
-            "/gestion-usuarios.jsp", "/registrar-usuario.jsp", "/hello-servlet"
+            "/admin/usuarios/estado",
+            "/gestion-usuarios.jsp", "/registrar-usuario.jsp", "/hello-servlet",
+            "/admin/firmantes"
     );
 
     private static final Set<String> DOCENTE_PATHS = Set.of(
@@ -62,17 +66,6 @@ public class FiltroAutenticacion extends HttpFilter {
             "/revisar-reporte.jsp", "/reporte-aceptado.jsp", "/reporte-rechazado.jsp"
     );
 
-    private static final Set<String> CSRF_PROTECTED_POST_PATHS = Set.of(
-            "/nueva-solicitud", "/confirmar-solicitud", "/docente/marcar-descarga",
-            "/docente/subir-documento", "/docente/subir-reporte",
-            "/estadias/revisar", "/cambiar-contrasena",
-            "/logout", "/solicitud", "/solicitud-servlet", "/UploadServlet",
-            "/upload-servlet", "/subir-documento", "/cartaEnviadaExito.jsp",
-            "/revisar-reporte.jsp", "/RegistrarUsuarioServlet",
-            "/admin/usuarios/alta", "/EliminarUsuarioServlet",
-            "/admin/usuarios/eliminar", "/ActualizarEstadoUsuarioServlet"
-    );
-
     @Override
     protected void doFilter(
             HttpServletRequest request,
@@ -83,12 +76,20 @@ public class FiltroAutenticacion extends HttpFilter {
 
         String contextPath = request.getContextPath();
         String path = request.getRequestURI().substring(contextPath.length());
-        HttpSession session = request.getSession(false);
+        HttpSession session = request.getSession(true);
+        CsrfTokenUtil.getOrCreate(session);
         Usuario usuario = session == null ? null : (Usuario) session.getAttribute("usuario");
         boolean loggedIn = usuario != null;
 
         if (isStaticAsset(path)) {
             chain.doFilter(request, response);
+            return;
+        }
+
+        if ("POST".equalsIgnoreCase(request.getMethod())
+                && !CsrfTokenUtil.matches(session, request.getHeader(CsrfTokenUtil.HEADER_NAME))
+                && !CsrfTokenUtil.matches(session, request.getParameter(CsrfTokenUtil.PARAMETER_NAME))) {
+            response.sendError(HttpServletResponse.SC_FORBIDDEN, "El formulario expiró. Recarga la página.");
             return;
         }
 
@@ -106,7 +107,8 @@ public class FiltroAutenticacion extends HttpFilter {
         }
 
         if (PUBLIC_PATHS.contains(path)) {
-            response.sendRedirect(contextPath + "/inicio");
+            PostNavigationResponse.send(response, contextPath + "/inicio",
+                    CsrfTokenUtil.getOrCreate(session), Map.of());
             return;
         }
 
@@ -119,14 +121,14 @@ public class FiltroAutenticacion extends HttpFilter {
 
         String rutaActualizada = legacyRedirect(role, path);
         if (rutaActualizada != null) {
-            response.sendRedirect(contextPath + rutaActualizada);
+            PostNavigationResponse.send(response, contextPath + rutaActualizada,
+                    CsrfTokenUtil.getOrCreate(session), Map.of());
             return;
         }
 
-        if ("POST".equalsIgnoreCase(request.getMethod())
-                && CSRF_PROTECTED_POST_PATHS.contains(path)
-                && !CsrfTokenUtil.matches(session, request.getParameter("csrfToken"))) {
-            response.sendError(HttpServletResponse.SC_FORBIDDEN, "El formulario expiró. Recarga la página.");
+        if ("GET".equalsIgnoreCase(request.getMethod())) {
+            response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED,
+                    "La navegación autenticada requiere POST.");
             return;
         }
 
@@ -166,6 +168,10 @@ public class FiltroAutenticacion extends HttpFilter {
     }
 
     private String legacyRedirect(TipoRol role, String path) {
+        if (role == TipoRol.ADMIN && (path.equals("/gestion-usuarios.jsp")
+                || path.equals("/registrar-usuario.jsp") || path.equals("/GestionUsuariosServlet"))) {
+            return "/admin/usuarios";
+        }
         if (role == TipoRol.DOCENTE) {
             return switch (path) {
                 case "/solicitud.jsp" -> "/mis-solicitudes";

@@ -9,6 +9,7 @@ import jakarta.servlet.http.HttpSession;
 import mx.edu.utez.awgva.Model.Usuario;
 import mx.edu.utez.awgva.Service.UsuarioService;
 import mx.edu.utez.awgva.Utils.CsrfTokenUtil;
+import mx.edu.utez.awgva.Utils.RecordTokenUtil;
 
 import java.io.IOException;
 
@@ -24,9 +25,8 @@ public class RegistrarUsuarioServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        loadCatalogs(request);
-        request.getRequestDispatcher("/WEB-INF/views/admin/altas-usuario.jsp").forward(request, response);
+            throws IOException {
+        response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
     }
 
     @Override
@@ -44,13 +44,22 @@ public class RegistrarUsuarioServlet extends HttpServlet {
             if (!usuarioService.register(usuario, request.getParameter("password"))) {
                 throw new IllegalArgumentException("No fue posible guardar el usuario.");
             }
-            response.sendRedirect(request.getContextPath() + "/admin/usuarios?creado=1");
+            request.getSession().setAttribute("adminUsersMessage", "Usuario creado correctamente.");
+            request.getRequestDispatcher("/admin/usuarios").forward(request, response);
         } catch (IllegalArgumentException exception) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             request.setAttribute("error", exception.getMessage());
+            request.setAttribute("modalAltaAbierto", true);
+            Usuario current = (Usuario) request.getSession(false).getAttribute("usuario");
+            java.util.List<Usuario> users = usuarioService.findAll();
+            for (Usuario listed : users) {
+                listed.setReferenceToken(RecordTokenUtil.issue(request.getSession(), current.getIdUsuario(),
+                        "admin-user", listed.getIdUsuario()));
+            }
+            request.setAttribute("listaUsuarios", users);
             copySafeValues(request);
             loadCatalogs(request);
-            request.getRequestDispatcher("/WEB-INF/views/admin/altas-usuario.jsp").forward(request, response);
+            request.getRequestDispatcher("/WEB-INF/views/admin/bajas-usuario.jsp").forward(request, response);
         }
     }
 
