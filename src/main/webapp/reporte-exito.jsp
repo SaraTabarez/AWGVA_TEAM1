@@ -68,7 +68,7 @@
             El reporte ha sido enviado correctamente.<br>
             Espera la respuesta del departamento al que ha sido enviado.
         </div>
-        <a class="btn" href="${ctx}/reportes-docente">Entendido</a>
+        <form method="post" action="${ctx}/reportes-docente"><input type="hidden" name="csrfToken" value="<c:out value='${sessionScope.csrfToken}'/>"><button class="btn" type="submit">Entendido</button></form>
     </div>
 </main>
 </body>

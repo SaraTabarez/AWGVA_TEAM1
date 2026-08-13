@@ -89,7 +89,7 @@
             <h3 class="section-title mb-3">Reportes de mis visitas</h3>
             <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 320px)); gap: 1.5rem;">
                 <c:forEach var="sol" items="${solicitudes}">
-                    <a href="${pageContext.request.contextPath}/reporte-docente?id=${sol.idVisita}" style="text-decoration:none; color:inherit;">
+                    <button type="button" data-post-url="${pageContext.request.contextPath}/reporte-docente" data-post-ref="<c:out value='${sol.referenceToken}'/>" style="border:0;background:transparent;padding:0;text-align:left;color:inherit;width:100%;">
                         <div style="border: 1px solid #d1d5db; border-radius: 12px; padding: 12px; background-color: #ffffff; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);">
                             <div class="company-banner">
                                 <h2><c:out value="${sol.empresa}"/></h2>
@@ -99,14 +99,14 @@
                                 <i class="fa-solid fa-location-dot" style="color: #1e3a5f;"></i>
                             </div>
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
-                                <span style="color: #94a3b8; font-size: 0.85rem; font-weight: 600;">ID: <c:out value="${sol.idVisita}"/></span>
+                                <span style="color: #94a3b8; font-size: 0.85rem; font-weight: 600;"><c:out value="${sol.estadoLegible}"/></span>
                                 <span class="badge ${empty sol.estadoReporte ? 'bg-secondary' : 'bg-success'}" style="font-size: 0.8rem; padding: 6px 10px;">
                             <i class="fa-solid fa-file-lines me-1"></i>
                             <c:out value="${empty sol.estadoReporte ? 'Capturar reporte' : sol.estadoReporte}"/>
                         </span>
                             </div>
                         </div>
-                    </a>
+                    </button>
                 </c:forEach>
                 <c:if test="${empty solicitudes}">
                     <div style="grid-column: 1 / -1;" class="alert alert-light border text-secondary fw-semibold p-3 text-center rounded-3">

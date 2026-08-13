@@ -104,10 +104,10 @@
                 </div>
 
                 <div class="card-footer-info">
-                    <span class="card-id">ID: <c:out value="${sol.idVisita}"/> · <c:out value="${sol.estadoLegible}"/></span>
-                    <a href="${pageContext.request.contextPath}/detalle-solicitud?id=${sol.idVisita}" class="btn-details">
+                    <span class="card-id"><c:out value="${sol.estadoLegible}"/></span>
+                    <button type="button" data-post-url="${pageContext.request.contextPath}/detalle-solicitud" data-post-ref="<c:out value='${sol.referenceToken}'/>" class="btn-details">
                         <i class="bi bi-eye"></i> Detalles
-                    </a>
+                    </button>
                 </div>
             </div>
         </c:forEach>

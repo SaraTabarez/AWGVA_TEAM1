@@ -289,7 +289,7 @@
         <!-- Formulario de subida -->
         <form id="uploadForm" action="${ctx}/docente/subir-documento" method="post" enctype="multipart/form-data">
             <input type="hidden" name="csrfToken" value="<c:out value='${sessionScope.csrfToken}'/>">
-            <input type="hidden" name="idVisita" value="${expediente.idVisita}">
+            <input type="hidden" name="ref" value="<c:out value='${expediente.referenceToken}'/>">
             <input type="hidden" name="tipo" value="SOLICITUD_VISITA">
 
             <label class="drop" for="archivo">
@@ -341,7 +341,7 @@
 
             <!-- Botones de Acción -->
             <div class="actions">
-                <a class="btn" href="${ctx}/detalle-solicitud?id=${expediente.idVisita}">Anterior</a>
+                <button class="btn" type="button" data-post-url="${ctx}/detalle-solicitud" data-post-ref="<c:out value='${expediente.referenceToken}'/>">Anterior</button>
                 <button class="btn" id="send" type="submit" disabled>Enviar</button>
             </div>
         </form>
