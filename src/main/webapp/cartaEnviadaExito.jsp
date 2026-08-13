@@ -68,7 +68,7 @@
             La carta responsiva ha sido enviada correctamente.<br>
             Espera la respuesta del departamento al que ha sido enviado.
         </div>
-        <a class="btn" href="${ctx}/detalle-solicitud?id=${param.id}">Entendido</a>
+        <form method="post" action="${ctx}/detalle-solicitud"><input type="hidden" name="csrfToken" value="<c:out value='${sessionScope.csrfToken}'/>"><input type="hidden" name="ref" value="<c:out value='${referenceToken}'/>"><button class="btn" type="submit">Entendido</button></form>
     </div>
 </main>
 </body>
