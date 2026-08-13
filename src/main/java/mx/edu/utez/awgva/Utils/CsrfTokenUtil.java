@@ -1,31 +1,36 @@
 package mx.edu.utez.awgva.Utils;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.util.Base64;
+import java.util.Objects;
 
-/** Token CSRF asociado a la sesión. */
 public final class CsrfTokenUtil {
 
     public static final String SESSION_ATTRIBUTE = "csrfToken";
     public static final String PARAMETER_NAME = "csrfToken";
     public static final String HEADER_NAME = "X-CSRF-Token";
+    public static final String REQUEST_PARAMETER = PARAMETER_NAME;
+    public static final String REQUEST_HEADER = HEADER_NAME;
+
+    private static final int TOKEN_BYTES = 32;
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private CsrfTokenUtil() {
     }
 
     public static String getOrCreate(HttpSession session) {
-        if (session == null) {
-            throw new IllegalArgumentException("La sesión es obligatoria.");
-        }
+        Objects.requireNonNull(session, "La sesión es obligatoria.");
+
         Object value = session.getAttribute(SESSION_ATTRIBUTE);
         if (value instanceof String token && !token.isBlank()) {
             return token;
         }
+
         synchronized (session) {
             value = session.getAttribute(SESSION_ATTRIBUTE);
             if (value instanceof String token && !token.isBlank()) {
@@ -36,26 +41,55 @@ public final class CsrfTokenUtil {
     }
 
     public static String rotate(HttpSession session) {
-        byte[] random = new byte[32];
-        SECURE_RANDOM.nextBytes(random);
-        String token = Base64.getUrlEncoder().withoutPadding().encodeToString(random);
+        Objects.requireNonNull(session, "La sesión es obligatoria.");
+
+        byte[] randomBytes = new byte[TOKEN_BYTES];
+        SECURE_RANDOM.nextBytes(randomBytes);
+
+        String token = Base64.getUrlEncoder()
+                .withoutPadding()
+                .encodeToString(randomBytes);
+
         session.setAttribute(SESSION_ATTRIBUTE, token);
+
         return token;
     }
 
+    public static boolean matches(HttpServletRequest request) {
+        if (request == null) {
+            return false;
+        }
+
+        HttpSession session = request.getSession(false);
+        String submittedToken = request.getParameter(REQUEST_PARAMETER);
+
+        if (submittedToken == null || submittedToken.isBlank()) {
+            submittedToken = request.getHeader(REQUEST_HEADER);
+        }
+
+        return matches(session, submittedToken);
+    }
+
     public static boolean matches(HttpSession session, String submittedToken) {
-        if (session == null || submittedToken == null) {
+        if (session == null || submittedToken == null || submittedToken.isBlank()) {
             return false;
         }
 
-        Object expectedToken = session.getAttribute(SESSION_ATTRIBUTE);
-        if (!(expectedToken instanceof String expected)) {
+        Object storedToken = session.getAttribute(SESSION_ATTRIBUTE);
+
+        if (!(storedToken instanceof String expectedToken) || expectedToken.isBlank()) {
             return false;
         }
 
-        return MessageDigest.isEqual(
-                expected.getBytes(StandardCharsets.UTF_8),
-                submittedToken.getBytes(StandardCharsets.UTF_8)
-        );
+        byte[] expectedBytes = expectedToken.getBytes(StandardCharsets.UTF_8);
+        byte[] submittedBytes = submittedToken.getBytes(StandardCharsets.UTF_8);
+
+        return MessageDigest.isEqual(expectedBytes, submittedBytes);
+    }
+
+    public static void invalidate(HttpSession session) {
+        if (session != null) {
+            session.removeAttribute(SESSION_ATTRIBUTE);
+        }
     }
 }

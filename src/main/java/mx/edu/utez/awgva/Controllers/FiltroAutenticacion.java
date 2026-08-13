@@ -10,9 +10,11 @@ import jakarta.servlet.http.HttpSession;
 import mx.edu.utez.awgva.Model.TipoRol;
 import mx.edu.utez.awgva.Model.Usuario;
 import mx.edu.utez.awgva.Utils.CsrfTokenUtil;
+import mx.edu.utez.awgva.Utils.PostNavigationResponse;
 
 import java.io.IOException;
 import java.util.Set;
+import java.util.Map;
 
 @WebFilter("/*")
 public class FiltroAutenticacion extends HttpFilter {
@@ -34,13 +36,12 @@ public class FiltroAutenticacion extends HttpFilter {
     );
 
     private static final Set<String> ADMIN_PATHS = Set.of(
-            "/GestionUsuariosServlet",
-            "/RegistrarUsuarioServlet",
-            "/EliminarUsuarioServlet",
-            "/ActualizarEstadoUsuarioServlet",
-            "/gestion-usuarios.jsp",
-            "/registrar-usuario.jsp",
-            "/hello-servlet"
+            "/GestionUsuariosServlet", "/RegistrarUsuarioServlet",
+            "/EliminarUsuarioServlet", "/ActualizarEstadoUsuarioServlet",
+            "/admin/usuarios", "/admin/usuarios/alta", "/admin/usuarios/eliminar",
+            "/admin/usuarios/estado",
+            "/gestion-usuarios.jsp", "/registrar-usuario.jsp", "/hello-servlet",
+            "/admin/firmantes"
     );
 
     private static final Set<String> DOCENTE_PATHS = Set.of(
@@ -106,6 +107,7 @@ public class FiltroAutenticacion extends HttpFilter {
 
         addSecurityHeaders(response);
 
+        String contextPath = request.getContextPath();
         String path = resolvePath(request);
 
         if (isStaticAsset(path)) {
@@ -113,40 +115,35 @@ public class FiltroAutenticacion extends HttpFilter {
             return;
         }
 
-        HttpSession session = request.getSession(false);
-
-        if (PUBLIC_PATHS.contains(path)) {
-            if (session == null) {
-                session = request.getSession(true);
-            }
-
-            CsrfTokenUtil.getOrCreate(session);
-        }
+        HttpSession session = request.getSession(true);
+        CsrfTokenUtil.getOrCreate(session);
+        Usuario usuario = getAuthenticatedUser(session);
+        boolean loggedIn = usuario != null;
 
         if (isPost(request)
                 && !TRANSITIONAL_CSRF_EXEMPT_PATHS.contains(path)
-                && !CsrfTokenUtil.matches(request)) {
-
-            response.sendError(
-                    HttpServletResponse.SC_FORBIDDEN,
-                    "El formulario expiró o la solicitud no es válida."
-            );
+                && !CsrfTokenUtil.matches(session, request.getHeader(CsrfTokenUtil.HEADER_NAME))
+                && !CsrfTokenUtil.matches(session, request.getParameter(CsrfTokenUtil.PARAMETER_NAME))) {
+            response.sendError(HttpServletResponse.SC_FORBIDDEN, "El formulario expiró o la solicitud no es válida.");
             return;
         }
 
-        Usuario usuario = getAuthenticatedUser(session);
-
-        if (usuario == null) {
+        if (!loggedIn) {
+            if (path.equals("/recuperar-contra.jsp")) {
+                response.sendRedirect(contextPath + "/reset-password");
+                return;
+            }
             if (PUBLIC_PATHS.contains(path)) {
                 chain.doFilter(request, response);
             } else {
-                response.sendRedirect(request.getContextPath() + "/login.jsp");
+                response.sendRedirect(contextPath + "/login.jsp");
             }
             return;
         }
 
         if (PUBLIC_PATHS.contains(path)) {
-            response.sendRedirect(request.getContextPath() + "/inicio");
+            PostNavigationResponse.send(response, contextPath + "/inicio",
+                    CsrfTokenUtil.getOrCreate(session), Map.of());
             return;
         }
 
@@ -154,29 +151,25 @@ public class FiltroAutenticacion extends HttpFilter {
 
         if (role == null) {
             session.invalidate();
-            response.sendRedirect(
-                    request.getContextPath() + "/login.jsp?error=rol"
-            );
+            response.sendRedirect(contextPath + "/login.jsp?error=rol");
             return;
         }
 
-        String legacyRoute = resolveLegacyRoute(role, path);
-
-        if (legacyRoute != null) {
-            response.sendRedirect(request.getContextPath() + legacyRoute);
+        String rutaActualizada = legacyRedirect(role, path);
+        if (rutaActualizada != null) {
+            PostNavigationResponse.send(response, contextPath + rutaActualizada,
+                    CsrfTokenUtil.getOrCreate(session), Map.of());
             return;
         }
 
-        if (isAuthorized(role, path)) {
+        if (role == TipoRol.ADMIN || isAuthorized(role, path)) {
             chain.doFilter(request, response);
             return;
         }
 
         response.setStatus(HttpServletResponse.SC_FORBIDDEN);
         request.setAttribute("rutaDenegada", path);
-        request.getRequestDispatcher(
-                "/WEB-INF/views/error/403.jsp"
-        ).forward(request, response);
+        request.getRequestDispatcher("/WEB-INF/views/error/403.jsp").forward(request, response);
     }
 
     private Usuario getAuthenticatedUser(HttpSession session) {
@@ -265,13 +258,17 @@ public class FiltroAutenticacion extends HttpFilter {
         return path;
     }
 
-    private String resolveLegacyRoute(TipoRol role, String path) {
+    private String legacyRedirect(TipoRol role, String path) {
+        if (role == TipoRol.ADMIN && (path.equals("/gestion-usuarios.jsp")
+                || path.equals("/registrar-usuario.jsp") || path.equals("/GestionUsuariosServlet"))) {
+            return "/admin/usuarios";
+        }
+
         if (role == TipoRol.DOCENTE) {
             return switch (path) {
                 case "/solicitud.jsp" -> "/mis-solicitudes";
                 case "/nueva-solicitud.jsp" -> "/nueva-solicitud";
-                case "/subir-docs.jsp", "/llenar-reporte.jsp" ->
-                        "/reportes-docente";
+                case "/subir-docs.jsp", "/llenar-reporte.jsp" -> "/reportes-docente";
                 case "/historico-docente.jsp" -> "/historico-docente";
                 case "/solicitud-detalle.jsp" -> "/mis-solicitudes";
                 default -> null;
@@ -281,7 +278,6 @@ public class FiltroAutenticacion extends HttpFilter {
         if (role == TipoRol.DIRECTOR
                 && (path.equals("/gestion-solicitudes.jsp")
                 || path.equals("/servlet-gestion-solicitudes"))) {
-
             return "/director/solicitudes";
         }
 

@@ -10,6 +10,7 @@ public class GrupoVisita {
     private String nombreGrupo;
     private Integer numeroEstudiantes;
     private LocalDateTime creadoEn;
+    private String area;
 
     // Constructor vacío
     public GrupoVisita() {}
@@ -45,4 +46,6 @@ public class GrupoVisita {
 
     public LocalDateTime getCreadoEn() { return creadoEn; }
     public void setCreadoEn(LocalDateTime creadoEn) { this.creadoEn = creadoEn; }
+    public String getArea() { return area; }
+    public void setArea(String area) { this.area = area; }
 }

@@ -10,26 +10,31 @@ import mx.edu.utez.awgva.Model.Documento;
 import mx.edu.utez.awgva.Model.TipoRol;
 import mx.edu.utez.awgva.Model.Usuario;
 import mx.edu.utez.awgva.Service.DocumentoService;
+import mx.edu.utez.awgva.Utils.RecordTokenUtil;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-/** Entrega archivos después de comprobar propietario, división o rol de Estadías. */
 @WebServlet(name = "ArchivoServlet", value = "/archivo")
 public class ArchivoServlet extends HttpServlet {
     private final DocumentoService documentoService = new DocumentoService();
 
     @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response)
+    protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws IOException, ServletException {
+        Usuario usuario = usuario(request);
         Long id;
-        try { id = Long.parseLong(request.getParameter("id")); }
-        catch (NumberFormatException exception) { response.sendError(HttpServletResponse.SC_BAD_REQUEST); return; }
+        try {
+            id = RecordTokenUtil.requireId(request.getSession(false), usuario.getIdUsuario(),
+                    "documento-archivo", request.getParameter("fileRef"));
+        } catch (IllegalArgumentException exception) {
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, exception.getMessage());
+            return;
+        }
 
         Documento documento = documentoService.buscarPorId(id);
-        Usuario usuario = usuario(request);
         if (documento == null || !autorizado(usuario, documento)) {
             response.sendError(HttpServletResponse.SC_NOT_FOUND);
             return;
@@ -50,6 +55,11 @@ public class ArchivoServlet extends HttpServlet {
         try (OutputStream output = response.getOutputStream()) {
             Files.copy(archivo, output);
         }
+    }
+
+    @Override
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
     }
 
     private boolean autorizado(Usuario usuario, Documento documento) {

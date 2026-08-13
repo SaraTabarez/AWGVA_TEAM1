@@ -1,6 +1,8 @@
 package mx.edu.utez.awgva.Model;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Datos capturados por el docente antes de confirmar y guardar la visita.
@@ -31,6 +33,7 @@ public class SolicitudVisita implements Serializable {
     private String totalEstudiantes;
     private String asignaturas;
     private String estado = "PENDIENTE";
+    private List<DetalleGrupoSolicitud> grupos = new ArrayList<>();
 
     public SolicitudVisita() {
     }
@@ -79,4 +82,8 @@ public class SolicitudVisita implements Serializable {
     public void setAsignaturas(String asignaturas) { this.asignaturas = asignaturas; }
     public String getEstado() { return estado; }
     public void setEstado(String estado) { this.estado = estado; }
+    public List<DetalleGrupoSolicitud> getGrupos() { return grupos; }
+    public void setGrupos(List<DetalleGrupoSolicitud> grupos) {
+        this.grupos = grupos == null ? new ArrayList<>() : grupos;
+    }
 }

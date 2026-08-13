@@ -13,7 +13,6 @@ import mx.edu.utez.awgva.Service.VisitaService;
 import java.io.IOException;
 import java.util.Map;
 
-/** Controlador único de inicio; selecciona la vista según el rol autenticado. */
 @WebServlet(name = "InicioServlet", value = "/inicio")
 public class InicioServlet extends HttpServlet {
 
@@ -28,6 +27,12 @@ public class InicioServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
+        response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
+    }
+
+    @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         HttpSession session = request.getSession(false);
         Usuario usuario = session == null ? null : (Usuario) session.getAttribute("usuario");
@@ -37,17 +42,17 @@ public class InicioServlet extends HttpServlet {
             if (session != null) {
                 session.invalidate();
             }
-            response.sendRedirect(request.getContextPath() + "/login.jsp?error=rol");
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
             return;
         }
 
         request.setAttribute("role", role.name());
         if (role == TipoRol.DIRECTOR) {
-            response.sendRedirect(request.getContextPath() + "/director/solicitudes");
+            request.getRequestDispatcher("/director/solicitudes").forward(request, response);
             return;
         }
         if (role == TipoRol.ESTADIAS) {
-            response.sendRedirect(request.getContextPath() + "/estadias/documentos");
+            request.getRequestDispatcher("/estadias/documentos").forward(request, response);
             return;
         }
         if (role == TipoRol.DOCENTE) {

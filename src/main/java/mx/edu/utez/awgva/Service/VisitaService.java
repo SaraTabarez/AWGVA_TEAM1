@@ -21,6 +21,10 @@ public class VisitaService {
         return visitaDao.guardarVisitaCompleta(visita, empresa, grupoVisita);
     }
 
+    public boolean crearVisitaCompleta(Visita visita, Empresa empresa, List<GrupoVisita> grupos) {
+        return visitaDao.guardarVisitaCompleta(visita, empresa, grupos);
+    }
+
     public List<Visita> obtenerVisitasPorUsuario(Long idUsuario) {
         return visitaDao.obtenerVisitasPorUsuario(idUsuario);
     }
@@ -43,6 +47,10 @@ public class VisitaService {
 
     public ExpedienteVisita buscarDelDocente(Long idVisita, Long idUsuario) {
         return visitaDao.buscarDelDocente(idVisita, idUsuario);
+    }
+
+    public List<GrupoVisita> listarGrupos(Long idVisita) {
+        return visitaDao.listarGrupos(idVisita);
     }
 
     public int contarDelDocente(Long idUsuario) {
@@ -76,5 +84,9 @@ public class VisitaService {
 
     public ExpedienteVisita buscarParaEstadias(Long idVisita) {
         return visitaDao.buscarParaEstadias(idVisita);
+    }
+
+    public boolean marcarOficioGenerado(Long idVisita, Long idUsuario) {
+        return visitaDao.marcarOficioGenerado(idVisita, idUsuario);
     }
 }

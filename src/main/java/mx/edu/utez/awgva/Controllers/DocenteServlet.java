@@ -8,6 +8,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import mx.edu.utez.awgva.Model.CatalogoCarreras;
 import mx.edu.utez.awgva.Model.Documento;
+import mx.edu.utez.awgva.Model.DetalleGrupoSolicitud;
 import mx.edu.utez.awgva.Model.Empresa;
 import mx.edu.utez.awgva.Model.ExpedienteVisita;
 import mx.edu.utez.awgva.Model.GrupoVisita;
@@ -15,13 +16,18 @@ import mx.edu.utez.awgva.Model.SolicitudVisita;
 import mx.edu.utez.awgva.Model.Usuario;
 import mx.edu.utez.awgva.Model.Visita;
 import mx.edu.utez.awgva.Service.DocumentoService;
+import mx.edu.utez.awgva.Service.FirmanteService;
 import mx.edu.utez.awgva.Service.VisitaService;
+import mx.edu.utez.awgva.Utils.RecordTokenUtil;
+import mx.edu.utez.awgva.Utils.TokenViewUtil;
 
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -40,16 +46,23 @@ public class DocenteServlet extends HttpServlet {
 
     private final VisitaService visitaService = new VisitaService();
     private final DocumentoService documentoService = new DocumentoService();
+    private final FirmanteService firmanteService = new FirmanteService();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
+        response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
+    }
+
+    private void handleView(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         Usuario usuario = usuario(request);
         try {
             switch (request.getServletPath()) {
                 case "/mis-solicitudes" -> {
-                    request.setAttribute("solicitudes",
-                            visitaService.listarSolicitudesActivasDocente(usuario.getIdUsuario()));
+                    List<ExpedienteVisita> items = visitaService.listarSolicitudesActivasDocente(usuario.getIdUsuario());
+                    decorate(request, usuario, items);
+                    request.setAttribute("solicitudes", items);
                     forward(request, response, "/solicitud.jsp");
                 }
                 case "/nueva-solicitud" -> mostrarFormulario(request, response, usuario);
@@ -64,13 +77,15 @@ public class DocenteServlet extends HttpServlet {
                 case "/subir-carta-firmada" -> mostrarCargaDocumento(
                         request, response, usuario, "CARTA_RESPONSIVA", "/subirCartaResponsiva.jsp");
                 case "/reportes-docente" -> {
-                    request.setAttribute("solicitudes",
-                            visitaService.listarReportesDelDocente(usuario.getIdUsuario()));
+                    List<ExpedienteVisita> items = visitaService.listarReportesDelDocente(usuario.getIdUsuario());
+                    decorate(request, usuario, items);
+                    request.setAttribute("solicitudes", items);
                     forward(request, response, "/subir-docs.jsp");
                 }
                 case "/historico-docente" -> {
-                    request.setAttribute("solicitudes",
-                            visitaService.listarHistoricoDocente(usuario.getIdUsuario()));
+                    List<ExpedienteVisita> items = visitaService.listarHistoricoDocente(usuario.getIdUsuario());
+                    decorate(request, usuario, items);
+                    request.setAttribute("solicitudes", items);
                     forward(request, response, "/historico-docente.jsp");
                 }
                 case "/reporte-docente" -> mostrarReportePropio(request, response, usuario);
@@ -91,6 +106,10 @@ public class DocenteServlet extends HttpServlet {
                 case "/nueva-solicitud" -> prepararVistaPrevia(request, response, usuario);
                 case "/confirmar-solicitud" -> confirmarSolicitud(request, response, usuario);
                 case "/docente/marcar-descarga" -> marcarDescarga(request, response, usuario);
+                case "/mis-solicitudes", "/solicitud-previa", "/detalle-solicitud",
+                     "/carta-responsiva", "/oficio-autorizacion", "/subir-solicitud-firmada",
+                     "/subir-carta-firmada", "/reportes-docente", "/historico-docente",
+                     "/reporte-docente" -> handleView(request, response);
                 default -> response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
             }
         } catch (IllegalArgumentException | IllegalStateException exception) {
@@ -119,30 +138,33 @@ public class DocenteServlet extends HttpServlet {
     }
 
     private void prepararVistaPrevia(HttpServletRequest request, HttpServletResponse response, Usuario usuario)
-            throws IOException {
+            throws IOException, ServletException {
         SolicitudVisita borrador = leerFormulario(request, usuario);
         request.getSession().setAttribute(BORRADOR_SOLICITUD, borrador);
-        response.sendRedirect(request.getContextPath() + "/solicitud-previa");
+        mostrarPrevia(request, response, usuario);
     }
 
     private void mostrarPrevia(HttpServletRequest request, HttpServletResponse response, Usuario usuario)
             throws ServletException, IOException {
         SolicitudVisita solicitud;
-        Long idVisita = idOpcional(request.getParameter("id"));
+        Long idVisita = request.getParameter("ref") == null ? null : visitaId(request, usuario);
         if (idVisita == null) {
             solicitud = (SolicitudVisita) request.getSession().getAttribute(BORRADOR_SOLICITUD);
             if (solicitud == null) {
-                response.sendRedirect(request.getContextPath() + "/nueva-solicitud");
+                request.setAttribute("carreras", CatalogoCarreras.deDivision(usuario.getNombreDivision()));
+                forward(request, response, "/nueva-solicitud.jsp");
                 return;
             }
         } else {
             ExpedienteVisita expediente = expedientePropio(idVisita, usuario);
             solicitud = datosSolicitud(expediente, usuario, request.getSession());
             request.setAttribute("expediente", expediente);
-            request.setAttribute("idVisita", idVisita);
         }
         request.setAttribute("solicitud", solicitud);
+        if (idVisita != null) request.setAttribute("referenceToken",
+                RecordTokenUtil.issue(request.getSession(), usuario.getIdUsuario(), "docente-visita", idVisita));
         request.setAttribute("divisionDocente", usuario.getNombreDivision());
+        request.setAttribute("firmantes", firmanteService.load());
         forward(request, response, "/solicitud-previa.jsp");
     }
 
@@ -175,34 +197,46 @@ public class DocenteServlet extends HttpServlet {
 
         Empresa empresa = new Empresa(solicitud.getEmpresaNombre(), solicitud.getEmpresaDireccion(),
                 solicitud.getEmpresaTelefono(), solicitud.getEmpresaEmail());
-        GrupoVisita grupo = new GrupoVisita(null, solicitud.getProgramaEducativo(),
-                solicitud.getSemestre(), solicitud.getGrupo(), Integer.parseInt(solicitud.getTotalEstudiantes()));
+        List<GrupoVisita> grupos = new ArrayList<>();
+        for (DetalleGrupoSolicitud detalle : solicitud.getGrupos()) {
+            GrupoVisita grupo = new GrupoVisita(null, detalle.getCarrera(), detalle.getCuatrimestre(),
+                    detalle.getGrupo(), detalle.getCantidadAlumnos());
+            grupo.setArea(detalle.getArea());
+            grupos.add(grupo);
+        }
 
-        if (!visitaService.crearVisitaCompleta(visita, empresa, grupo) || visita.getIdVisita() == null) {
+        if (!visitaService.crearVisitaCompleta(visita, empresa, grupos) || visita.getIdVisita() == null) {
             throw new IllegalStateException("No fue posible guardar la solicitud. Revisa la conexión con Oracle.");
         }
 
         guardarDatosSolicitud(session, visita.getIdVisita(), solicitud);
         session.removeAttribute(BORRADOR_SOLICITUD);
         request.setAttribute("solicitud", solicitud);
-        request.setAttribute("idVisita", visita.getIdVisita());
+        request.setAttribute("referenceToken", RecordTokenUtil.issue(request.getSession(),
+                usuario.getIdUsuario(), "docente-visita", visita.getIdVisita()));
         request.setAttribute("divisionDocente", usuario.getNombreDivision());
+        request.setAttribute("firmantes", firmanteService.load());
         request.setAttribute("autoPrint", true);
         forward(request, response, "/solicitud-previa.jsp");
     }
 
     private void mostrarDetallePropio(HttpServletRequest request, HttpServletResponse response, Usuario usuario)
             throws ServletException, IOException {
-        Long idVisita = id(request.getParameter("id"));
+        Long idVisita = visitaId(request, usuario);
         ExpedienteVisita expediente = expedientePropio(idVisita, usuario);
         expediente.setDocumentos(documentoService.listarPorVisita(idVisita));
 
         Documento solicitudFirmada = documentoService.buscarPorVisitaYTipo(idVisita, "SOLICITUD_VISITA");
         Documento cartaFirmada = documentoService.buscarPorVisitaYTipo(idVisita, "CARTA_RESPONSIVA");
+        TokenViewUtil.decorateDocuments(request, usuario, expediente.getDocumentos());
+        TokenViewUtil.decorateDocument(request, usuario, solicitudFirmada);
+        TokenViewUtil.decorateDocument(request, usuario, cartaFirmada);
         boolean cartaDescargada = cartasDescargadas(request.getSession()).contains(idVisita)
                 || cartaFirmada != null;
 
         request.setAttribute("expediente", expediente);
+        expediente.setReferenceToken(RecordTokenUtil.issue(request.getSession(), usuario.getIdUsuario(),
+                "docente-visita", idVisita));
         request.setAttribute("solicitudFirmada", solicitudFirmada);
         request.setAttribute("cartaFirmada", cartaFirmada);
         request.setAttribute("cartaDescargada", cartaDescargada);
@@ -212,24 +246,48 @@ public class DocenteServlet extends HttpServlet {
     private void mostrarDocumentoGenerado(HttpServletRequest request, HttpServletResponse response,
                                           Usuario usuario, String jsp)
             throws ServletException, IOException {
-        Long idVisita = id(request.getParameter("id"));
+        Long idVisita = visitaId(request, usuario);
         ExpedienteVisita expediente = expedientePropio(idVisita, usuario);
+        String state = expediente.getEstado() == null ? "" : expediente.getEstado().toUpperCase(Locale.ROOT);
+        if ("/cartaResponsiva.jsp".equals(jsp)
+                && !Set.of("SOLICITUD_APROBADA_ESTADIAS", "CARTA_RECHAZADA_ESTADIAS",
+                "CARTA_APROBADA_ESTADIAS", "OFICIO_GENERADO", "REPORTE_EN_REVISION",
+                "REPORTE_RECHAZADO", "COMPLETADA").contains(state)) {
+            throw new IllegalStateException("La carta responsiva se habilita cuando Estadías acepta la solicitud firmada.");
+        }
+        if ("/oficio-autorizacion.jsp".equals(jsp)) {
+            if (!Set.of("CARTA_APROBADA_ESTADIAS", "OFICIO_GENERADO", "REPORTE_EN_REVISION",
+                    "REPORTE_RECHAZADO", "COMPLETADA").contains(state)) {
+                throw new IllegalStateException("El oficio se habilita cuando Estadías acepta la carta responsiva.");
+            }
+            if ("CARTA_APROBADA_ESTADIAS".equals(state)
+                    && !visitaService.marcarOficioGenerado(idVisita, usuario.getIdUsuario())) {
+                throw new IllegalStateException("No fue posible registrar la generación del oficio.");
+            }
+            expediente = expedientePropio(idVisita, usuario);
+        }
+        expediente.setReferenceToken(RecordTokenUtil.issue(request.getSession(), usuario.getIdUsuario(),
+                "docente-visita", idVisita));
         request.setAttribute("expediente", expediente);
         request.setAttribute("solicitud", datosSolicitud(expediente, usuario, request.getSession()));
+        request.setAttribute("firmantes", firmanteService.load());
         forward(request, response, jsp);
     }
 
     private void mostrarCargaDocumento(HttpServletRequest request, HttpServletResponse response,
                                        Usuario usuario, String tipo, String jsp)
             throws ServletException, IOException {
-        Long idVisita = id(request.getParameter("id"));
+        Long idVisita = visitaId(request, usuario);
         ExpedienteVisita expediente = expedientePropio(idVisita, usuario);
+        String state = expediente.getEstado() == null ? "" : expediente.getEstado().toUpperCase(Locale.ROOT);
+        if ("SOLICITUD_VISITA".equals(tipo)
+                && !Set.of("ACEPTADA_DIRECTOR", "SOLICITUD_RECHAZADA_ESTADIAS").contains(state))
+            throw new IllegalStateException("La solicitud firmada sólo puede subirse después de la aprobación de Dirección o cuando Estadías solicita corregirla.");
         if ("CARTA_RESPONSIVA".equals(tipo)
-                && !cartasDescargadas(request.getSession()).contains(idVisita)
-                && documentoService.buscarPorVisitaYTipo(idVisita, tipo) == null) {
-            response.sendRedirect(request.getContextPath() + "/detalle-solicitud?id=" + idVisita + "&pendienteCarta=1");
-            return;
-        }
+                && !Set.of("SOLICITUD_APROBADA_ESTADIAS", "CARTA_RECHAZADA_ESTADIAS").contains(state))
+            throw new IllegalStateException("La carta responsiva sólo puede subirse cuando la solicitud firmada fue aceptada por Estadías.");
+        expediente.setReferenceToken(RecordTokenUtil.issue(request.getSession(), usuario.getIdUsuario(),
+                "docente-visita", idVisita));
         request.setAttribute("expediente", expediente);
         request.setAttribute("documentoExistente", documentoService.buscarPorVisitaYTipo(idVisita, tipo));
         String mensaje = (String) request.getSession().getAttribute("mensajeCarga");
@@ -242,11 +300,19 @@ public class DocenteServlet extends HttpServlet {
 
     private void mostrarReportePropio(HttpServletRequest request, HttpServletResponse response, Usuario usuario)
             throws ServletException, IOException {
-        Long idVisita = id(request.getParameter("id"));
+        Long idVisita = visitaId(request, usuario);
         ExpedienteVisita expediente = expedientePropio(idVisita, usuario);
+        String state = expediente.getEstado() == null ? "" : expediente.getEstado().toUpperCase(Locale.ROOT);
+        if (!Set.of("OFICIO_GENERADO", "REPORTE_EN_REVISION", "REPORTE_RECHAZADO").contains(state))
+            throw new IllegalStateException("El reporte se habilita después de generar el oficio.");
+        expediente.setReferenceToken(RecordTokenUtil.issue(request.getSession(), usuario.getIdUsuario(),
+                "docente-visita", idVisita));
         expediente.setDocumentos(documentoService.listarEvidenciasReporte(idVisita));
+        TokenViewUtil.decorateDocuments(request, usuario, expediente.getDocumentos());
         request.setAttribute("expediente", expediente);
-        request.setAttribute("reporte", documentoService.buscarPorVisitaYTipo(idVisita, "REPORTE"));
+        Documento reporte = documentoService.buscarPorVisitaYTipo(idVisita, "REPORTE");
+        TokenViewUtil.decorateDocument(request, usuario, reporte);
+        request.setAttribute("reporte", reporte);
         String mensaje = (String) request.getSession().getAttribute("mensajeCarga");
         if (mensaje != null) {
             request.setAttribute("error", mensaje);
@@ -257,7 +323,7 @@ public class DocenteServlet extends HttpServlet {
 
     private void marcarDescarga(HttpServletRequest request, HttpServletResponse response, Usuario usuario)
             throws IOException {
-        Long idVisita = id(request.getParameter("idVisita"));
+        Long idVisita = visitaId(request, usuario);
         expedientePropio(idVisita, usuario);
         String tipo = request.getParameter("tipo");
         if ("CARTA_RESPONSIVA".equals(tipo)) {
@@ -284,27 +350,22 @@ public class DocenteServlet extends HttpServlet {
         solicitud.setHoraInicio(texto(request, "horaInicio", 5, "No registrada"));
         solicitud.setObjetivo(texto(request, "objetivo", 1000, null));
 
-        String carrera = texto(request, "programaEducativo", 180, null);
-        if (!CatalogoCarreras.pertenece(usuario.getNombreDivision(), carrera)) {
-            throw new IllegalArgumentException("Selecciona una carrera de tu división.");
-        }
-        solicitud.setProgramaEducativo(carrera);
-        solicitud.setSemestre(texto(request, "semestre", 30, null));
-        solicitud.setGrupo(texto(request, "grupo", 30, null));
-
-        int dacea = entero(request, "dacea", 0, 200, "Captura cantidades válidas por división.");
-        int datefi = entero(request, "datefi", 0, 200, "Captura cantidades válidas por división.");
-        int datid = entero(request, "datid", 0, 200, "Captura cantidades válidas por división.");
-        int dami = entero(request, "dami", 0, 200, "Captura cantidades válidas por división.");
-        int total = entero(request, "totalEstudiantes", 1, 200,
-                "El total de estudiantes debe estar entre 1 y 200.");
-        if (dacea + datefi + datid + dami != total) {
-            throw new IllegalArgumentException("El total de estudiantes debe coincidir con la suma de las divisiones.");
-        }
-        solicitud.setDacea(String.valueOf(dacea));
-        solicitud.setDatefi(String.valueOf(datefi));
-        solicitud.setDatid(String.valueOf(datid));
-        solicitud.setDami(String.valueOf(dami));
+        List<DetalleGrupoSolicitud> grupos = leerGrupos(request, usuario);
+        solicitud.setGrupos(grupos);
+        DetalleGrupoSolicitud primero = grupos.get(0);
+        solicitud.setProgramaEducativo(primero.getCarrera());
+        solicitud.setSemestre(primero.getCuatrimestre());
+        solicitud.setGrupo(primero.getGrupo());
+        int total = grupos.stream().mapToInt(DetalleGrupoSolicitud::getCantidadAlumnos).sum();
+        solicitud.setDacea("0");
+        solicitud.setDatefi("0");
+        solicitud.setDatid("0");
+        solicitud.setDami("0");
+        String area = valor(usuario.getNombreDivision(), "").toUpperCase(Locale.ROOT);
+        if (area.contains("DACEA")) solicitud.setDacea(String.valueOf(total));
+        else if (area.contains("DATEFI")) solicitud.setDatefi(String.valueOf(total));
+        else if (area.contains("DATID")) solicitud.setDatid(String.valueOf(total));
+        else if (area.contains("DAMI")) solicitud.setDami(String.valueOf(total));
         solicitud.setTotalEstudiantes(String.valueOf(total));
         solicitud.setAsignaturas(texto(request, "asignaturas", 500, null));
 
@@ -314,6 +375,53 @@ public class DocenteServlet extends HttpServlet {
             throw new IllegalArgumentException("La fecha de término no puede ser anterior a la fecha de inicio.");
         }
         return solicitud;
+    }
+
+    private List<DetalleGrupoSolicitud> leerGrupos(HttpServletRequest request, Usuario usuario) {
+        String[] carreras = request.getParameterValues("carrera");
+        String[] areas = request.getParameterValues("area");
+        String[] cuatrimestres = request.getParameterValues("cuatrimestre");
+        String[] grupos = request.getParameterValues("grupoNombre");
+        String[] cantidades = request.getParameterValues("cantidadAlumnos");
+        if (carreras == null || areas == null || cuatrimestres == null || grupos == null
+                || cantidades == null || carreras.length == 0 || carreras.length > 10
+                || areas.length != carreras.length || cuatrimestres.length != carreras.length
+                || grupos.length != carreras.length || cantidades.length != carreras.length) {
+            throw new IllegalArgumentException("Agrega al menos un grupo completo.");
+        }
+        List<DetalleGrupoSolicitud> result = new ArrayList<>();
+        int total = 0;
+        for (int index = 0; index < carreras.length; index++) {
+            String carrera = carreras[index] == null ? "" : carreras[index].trim();
+            String area = areas[index] == null ? "" : areas[index].trim();
+            String cuatrimestre = cuatrimestres[index] == null ? "" : cuatrimestres[index].trim();
+            String grupo = grupos[index] == null ? "" : grupos[index].trim();
+            if (!CatalogoCarreras.pertenece(usuario.getNombreDivision(), carrera)) {
+                throw new IllegalArgumentException("Selecciona carreras pertenecientes a tu división.");
+            }
+            if (!area.equalsIgnoreCase(valor(usuario.getNombreDivision(), ""))) {
+                throw new IllegalArgumentException("El área debe coincidir con la división de tu cuenta.");
+            }
+            if (cuatrimestre.isBlank() || cuatrimestre.length() > 30
+                    || grupo.isBlank() || grupo.length() > 30) {
+                throw new IllegalArgumentException("Completa cuatrimestre y grupo.");
+            }
+            int alumnos;
+            try { alumnos = Integer.parseInt(cantidades[index]); }
+            catch (NumberFormatException exception) { throw new IllegalArgumentException("Captura cantidades válidas."); }
+            if (alumnos < 1 || alumnos > 200 || total + alumnos > 200) {
+                throw new IllegalArgumentException("La cantidad total de alumnos debe estar entre 1 y 200.");
+            }
+            total += alumnos;
+            DetalleGrupoSolicitud item = new DetalleGrupoSolicitud();
+            item.setCarrera(carrera);
+            item.setArea(area);
+            item.setCuatrimestre(cuatrimestre);
+            item.setGrupo(grupo);
+            item.setCantidadAlumnos(alumnos);
+            result.add(item);
+        }
+        return result;
     }
 
     private ExpedienteVisita expedientePropio(Long idVisita, Usuario usuario) {
@@ -357,6 +465,26 @@ public class DocenteServlet extends HttpServlet {
         else if (division.contains("DATID")) solicitud.setDatid(String.valueOf(total));
         else if (division.contains("DAMI")) solicitud.setDami(String.valueOf(total));
         solicitud.setTotalEstudiantes(String.valueOf(total));
+        List<DetalleGrupoSolicitud> detalles = new ArrayList<>();
+        for (GrupoVisita grupo : visitaService.listarGrupos(expediente.getIdVisita())) {
+            DetalleGrupoSolicitud detalle = new DetalleGrupoSolicitud();
+            detalle.setCarrera(grupo.getProgramaEducativo());
+            detalle.setArea(valor(expediente.getDivision(), usuario.getNombreDivision()));
+            detalle.setCuatrimestre(grupo.getSemestre());
+            detalle.setGrupo(grupo.getNombreGrupo());
+            detalle.setCantidadAlumnos(grupo.getNumeroEstudiantes());
+            detalles.add(detalle);
+        }
+        if (detalles.isEmpty()) {
+            DetalleGrupoSolicitud detalle = new DetalleGrupoSolicitud();
+            detalle.setCarrera(expediente.getCarrera());
+            detalle.setArea(valor(expediente.getDivision(), usuario.getNombreDivision()));
+            detalle.setCuatrimestre(expediente.getSemestre());
+            detalle.setGrupo(expediente.getGrupo());
+            detalle.setCantidadAlumnos(total);
+            detalles.add(detalle);
+        }
+        solicitud.setGrupos(detalles);
         solicitud.setEstado(expediente.getEstado());
         return solicitud;
     }
@@ -397,6 +525,18 @@ public class DocenteServlet extends HttpServlet {
         Long id = idOpcional(valor);
         if (id == null) throw new IllegalArgumentException("Identificador no válido.");
         return id;
+    }
+
+    private Long visitaId(HttpServletRequest request, Usuario usuario) {
+        return RecordTokenUtil.requireId(request.getSession(false), usuario.getIdUsuario(),
+                "docente-visita", request.getParameter("ref"));
+    }
+
+    private void decorate(HttpServletRequest request, Usuario usuario, List<ExpedienteVisita> items) {
+        for (ExpedienteVisita item : items) {
+            item.setReferenceToken(RecordTokenUtil.issue(request.getSession(), usuario.getIdUsuario(),
+                    "docente-visita", item.getIdVisita()));
+        }
     }
 
     private Long idOpcional(String valor) {
