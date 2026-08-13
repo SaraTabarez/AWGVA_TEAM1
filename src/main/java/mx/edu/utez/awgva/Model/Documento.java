@@ -22,6 +22,8 @@ public class Documento {
     private String docente;
     private String division;
     private String carrera;
+    private String referenceToken;
+    private String fileToken;
 
     // Constructor vacío
     public Documento() {}
@@ -77,6 +79,10 @@ public class Documento {
     public void setDivision(String division) { this.division = division; }
     public String getCarrera() { return carrera; }
     public void setCarrera(String carrera) { this.carrera = carrera; }
+    public String getReferenceToken() { return referenceToken; }
+    public void setReferenceToken(String referenceToken) { this.referenceToken = referenceToken; }
+    public String getFileToken() { return fileToken; }
+    public void setFileToken(String fileToken) { this.fileToken = fileToken; }
 
     public String getTipoLegible() {
         if (tipoDocumento == null) return "Documento";

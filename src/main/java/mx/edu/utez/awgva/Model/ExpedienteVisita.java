@@ -32,6 +32,7 @@ public class ExpedienteVisita {
     private Integer numeroEstudiantes;
     private String estadoReporte;
     private List<Documento> documentos = new ArrayList<>();
+    private String referenceToken;
 
     public Long getIdVisita() { return idVisita; }
     public void setIdVisita(Long idVisita) { this.idVisita = idVisita; }
@@ -85,6 +86,8 @@ public class ExpedienteVisita {
     public void setDocumentos(List<Documento> documentos) {
         this.documentos = documentos == null ? new ArrayList<>() : documentos;
     }
+    public String getReferenceToken() { return referenceToken; }
+    public void setReferenceToken(String referenceToken) { this.referenceToken = referenceToken; }
 
     public String getEstadoLegible() {
         if (estado == null) return "Sin estado";
@@ -92,6 +95,11 @@ public class ExpedienteVisita {
             case "PENDIENTE", "PENDIENTE_DIRECTOR" -> "Pendiente";
             case "ACEPTADA", "ACEPTADA_DIRECTOR" -> "Aceptada";
             case "RECHAZADA", "RECHAZADA_DIRECTOR" -> "Rechazada";
+            case "SOLICITUD_APROBADA_ESTADIAS" -> "Solicitud aceptada por Estadías";
+            case "SOLICITUD_RECHAZADA_ESTADIAS" -> "Solicitud con correcciones";
+            case "CARTA_APROBADA_ESTADIAS" -> "Carta responsiva aceptada";
+            case "CARTA_RECHAZADA_ESTADIAS" -> "Carta responsiva con correcciones";
+            case "OFICIO_GENERADO" -> "Oficio generado";
             case "DOCUMENTACION_APROBADA" -> "Documentación aprobada";
             case "DOCUMENTACION_RECHAZADA" -> "Documentación con correcciones";
             case "REPORTE_EN_REVISION" -> "Reporte en revisión";
