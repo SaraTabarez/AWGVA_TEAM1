@@ -283,7 +283,7 @@
             <div class="step active"><i class="bi bi-images"></i>Reporte enviado</div>
             <div class="step"><i class="bi bi-check2-all"></i>Reporte aceptado</div>
         </div>
-        <div class="date">Folio: #<c:out value="${expediente.idVisita}"/></div>
+        <div class="date">Expediente de visita</div>
     </div>
 
     <!-- Alertas -->
@@ -369,7 +369,7 @@
         <c:when test="${empty reporte or reporteRechazado}">
             <form id="reportForm" action="${ctx}/docente/subir-reporte" method="post" enctype="multipart/form-data">
                 <input type="hidden" name="csrfToken" value="<c:out value='${sessionScope.csrfToken}'/>">
-                <input type="hidden" name="idVisita" value="${expediente.idVisita}">
+                <input type="hidden" name="ref" value="<c:out value='${expediente.referenceToken}'/>">
 
                 <section class="section">
                     <div class="upload-title">Subida de evidencias</div>
@@ -387,7 +387,7 @@
                 </section>
 
                 <div class="actions">
-                    <a class="btn" href="${ctx}/detalle-solicitud?id=${expediente.idVisita}">Atrás</a>
+                    <button class="btn" type="button" data-post-url="${ctx}/detalle-solicitud" data-post-ref="<c:out value='${expediente.referenceToken}'/>">Atrás</button>
                     <button class="btn send" id="send" type="submit" disabled>Enviar reporte</button>
                 </div>
             </form>
@@ -401,7 +401,7 @@
                 <div class="evidence-grid">
                     <c:forEach var="doc" items="${expediente.documentos}">
                         <div class="evidence">
-                            <img src="${ctx}/archivo?id=${doc.idDocumento}" alt="Evidencia">
+                            <img data-private-image="<c:out value='${doc.fileToken}'/>" alt="Evidencia">
                             <div><c:out value="${doc.nombreArchivo}"/></div>
                         </div>
                     </c:forEach>
@@ -420,7 +420,8 @@
 
     function validar() {
         if (!send) return;
-        send.disabled = !inputs.every(i => i.files.length === 1);
+        const edicion = ${not empty reporte ? 'true' : 'false'};
+        send.disabled = edicion ? !inputs.some(i => i.files.length === 1) : !inputs.every(i => i.files.length === 1);
     }
 
     inputs.forEach((input, index) => input.addEventListener('change', () => {

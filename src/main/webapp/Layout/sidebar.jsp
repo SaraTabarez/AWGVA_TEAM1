@@ -1,4 +1,4 @@
-<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+ç<%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 
@@ -56,6 +56,7 @@
         .sidebar .avatar { width: 58px; height: 58px; font-size: 28px; }
     }
 </style>
+<meta name="context-path" content="${pageContext.request.contextPath}">
 
 <aside class="sidebar" aria-label="Navegación principal">
     <div>
@@ -93,8 +94,8 @@
 
                     <c:when test="${sessionScope.rol == 'ADMIN'}">
                         <li class="menu-section">Administración</li>
-                        <li><a href="${ctx}/admin/usuarios/alta" class="nav-link-role ${fn:contains(currentPath, '/admin/usuarios/alta') ? 'active' : ''}"><i class="bi bi-person-plus-fill"></i><span>Altas de usuario</span></a></li>
-                        <li><a href="${ctx}/admin/usuarios" class="nav-link-role ${fn:contains(currentPath, '/admin/usuarios') && !fn:contains(currentPath, '/alta') ? 'active' : ''}"><i class="bi bi-person-x-fill"></i><span>Eliminar usuarios</span></a></li>
+                        <li><a href="${ctx}/admin/usuarios" class="nav-link-role ${fn:contains(currentPath, '/admin/usuarios') ? 'active' : ''}"><i class="bi bi-people-fill"></i><span>Gestión de usuarios</span></a></li>
+                        <li><a href="${ctx}/admin/firmantes" class="nav-link-role ${fn:contains(currentPath, '/admin/firmantes') ? 'active' : ''}"><i class="bi bi-pen-fill"></i><span>Firmantes</span></a></li>
 
                         <li class="menu-section">Funciones de Docente</li>
                         <li><a href="${ctx}/nueva-solicitud" class="nav-link-role ${fn:contains(currentPath, 'nueva-solicitud') ? 'active' : ''}"><i class="bi bi-plus-circle"></i><span>Nueva solicitud</span></a></li>
@@ -123,3 +124,5 @@
         </button>
     </form>
 </aside>
+<input type="hidden" name="csrfToken" value="<c:out value='${sessionScope.csrfToken}'/>">
+<script src="${pageContext.request.contextPath}/assets/js/post-navigation.js" defer></script>
