@@ -114,51 +114,78 @@ public class UsuarioService {
         };
     }
 
-    public boolean generateAndSendResetCode(String correo) {
-        Usuario usuario = usuarioDao.findByEmail(correo);
+    public PasswordResetRequest requestPasswordReset(String correo) {
+        String normalized = normalizeInstitutionalEmail(correo);
+        if (normalized == null) {
+            return PasswordResetRequest.INVALID_EMAIL;
+        }
+        Usuario usuario = usuarioDao.findByEmail(normalized);
         if (usuario == null) {
-            return false;
+            return PasswordResetRequest.ACCOUNT_NOT_FOUND;
         }
 
-        String resetToken = generateRandomCode(8);
+        String code = generateRandomCode(6);
         Timestamp expiration = new Timestamp(System.currentTimeMillis() + (15 * 60 * 1000));
-        if (!usuarioDao.updateResetToken(correo, resetToken, expiration)) {
-            return false;
+        if (!usuarioDao.updateResetToken(normalized, passwordService.hash(code), expiration)) {
+            return PasswordResetRequest.ERROR;
         }
 
-        String plantillaHtml = """
-                <html>
-                    <body style="font-family: Arial, sans-serif; color: #333333;">
-                        <h2 style="color: #1e3a5f;">Recuperación de contraseña</h2>
-                        <p>Hola, <strong>{0}</strong>.</p>
-                        <p>Tu código de verificación es:</p>
-                        <div style="font-size: 30px; font-weight: bold; letter-spacing: 5px;">{1}</div>
-                        <p>El código expirará en 15 minutos.</p>
-                    </body>
-                </html>
-                """;
-
-        String body = MessageFormat.format(plantillaHtml, usuario.getNombreCompleto(), resetToken);
+        String body = "<html><body style=\"font-family:Arial,sans-serif;color:#1e3656\">"
+                + "<h2 style=\"color:#1f3b5f\">Recuperación de contraseña</h2>"
+                + "<p>Hola, <strong>" + escapeHtml(usuario.getNombreCompleto()) + "</strong>.</p>"
+                + "<p>Tu código de seguridad es:</p>"
+                + "<div style=\"font-size:32px;font-weight:700;letter-spacing:8px;color:#ff9418\">"
+                + code + "</div><p>El código vence en 15 minutos.</p>"
+                + "<p>Si no solicitaste este cambio, comunícate con Administración.</p></body></html>";
         try {
-            EmailSender.sendMail(correo, "Código de recuperación de contraseña", body);
-            return true;
+            EmailSender.sendMail(normalized, "Código de seguridad AWGVA", body);
+            return PasswordResetRequest.SENT;
         } catch (RuntimeException exception) {
-            System.err.println("No fue posible enviar el correo de recuperación.");
-            return false;
+            usuarioDao.clearResetToken(normalized);
+            return PasswordResetRequest.ERROR;
         }
     }
 
-    public boolean resetPassword(String token, String correo, String newPassword) {
-        validatePassword(newPassword);
-        if (correo == null || !usuarioDao.isResetTokenValid(token, correo)) {
+    public StatusUpdateResult updateStatus(Long idUsuario, int estado, Usuario currentUser) {
+        if (currentUser == null || currentUser.getTipoRol().orElse(null) != TipoRol.ADMIN) {
+            return StatusUpdateResult.UNAUTHORIZED;
+        }
+        if (idUsuario == null || (estado != 0 && estado != 1)) {
+            return StatusUpdateResult.INVALID;
+        }
+        if (idUsuario.equals(currentUser.getIdUsuario()) && estado == 0) {
+            return StatusUpdateResult.SELF_PROTECTED;
+        }
+        Usuario target = usuarioDao.findById(idUsuario);
+        if (target == null) {
+            return StatusUpdateResult.NOT_FOUND;
+        }
+        if (target.getTipoRol().orElse(null) == TipoRol.ADMIN && estado == 0) {
+            return StatusUpdateResult.ADMIN_PROTECTED;
+        }
+        return usuarioDao.updateEstado(idUsuario, estado)
+                ? StatusUpdateResult.UPDATED : StatusUpdateResult.ERROR;
+    }
+
+    public boolean verifyPasswordResetCode(String correo, String code) {
+        String normalized = normalizeInstitutionalEmail(correo);
+        if (normalized == null || code == null || !code.matches("\\d{6}")) {
             return false;
         }
+        Usuario usuario = usuarioDao.findByEmail(normalized);
+        if (usuario == null || usuario.getResetToken() == null
+                || usuario.getResetTokenExpiration() == null
+                || !usuario.getResetTokenExpiration().after(new Timestamp(System.currentTimeMillis()))) {
+            return false;
+        }
+        return passwordService.verify(code, usuario.getResetToken()).valid();
+    }
 
-        Usuario usuario = usuarioDao.findByResetToken(token, correo);
-        return usuario != null && usuarioDao.updatePassword(
-                usuario.getCorreo(),
-                passwordService.hash(newPassword)
-        );
+    public boolean completePasswordReset(String correo, String newPassword) {
+        String normalized = normalizeInstitutionalEmail(correo);
+        validatePassword(newPassword);
+        return normalized != null
+                && usuarioDao.updatePassword(normalized, passwordService.hash(newPassword));
     }
 
     public boolean changeOwnPassword(Usuario sessionUser, String currentPassword, String newPassword) {
@@ -203,10 +230,10 @@ public class UsuarioService {
 
     private void validatePassword(String password) {
         if (password == null || password.length() < 10
-                || !password.matches(".*[A-Z].*")
-                || !password.matches(".*[a-z].*")
-                || !password.matches(".*\\d.*")
-                || !password.matches(".*[^A-Za-z0-9].*")) {
+                || !password.matches(".[A-Z].")
+                || !password.matches(".[a-z].")
+                || !password.matches(".\\d.")
+                || !password.matches(".[^A-Za-z0-9].")) {
             throw new IllegalArgumentException(
                     "La contraseña debe tener al menos 10 caracteres, mayúscula, minúscula, número y símbolo."
             );
@@ -227,12 +254,46 @@ public class UsuarioService {
         return code.toString();
     }
 
+    private String normalizeInstitutionalEmail(String correo) {
+        if (correo == null || correo.isBlank() || correo.length() > 160) {
+            return null;
+        }
+        String normalized = correo.trim().toLowerCase(Locale.ROOT);
+        return INSTITUTIONAL_EMAIL.matcher(normalized).matches() ? normalized : null;
+    }
+
+    private String escapeHtml(String value) {
+        if (value == null) return "";
+        return value.replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;")
+                .replace("'", "&#39;");
+    }
+
+    public enum PasswordResetRequest {
+        SENT,
+        INVALID_EMAIL,
+        ACCOUNT_NOT_FOUND,
+        ERROR
+    }
+
     public enum UserDeletionResult {
         DELETED,
         NOT_FOUND,
         SELF_PROTECTED,
         ADMIN_PROTECTED,
         HAS_DEPENDENCIES,
+        UNAUTHORIZED,
+        ERROR
+    }
+
+    public enum StatusUpdateResult {
+        UPDATED,
+        INVALID,
+        NOT_FOUND,
+        SELF_PROTECTED,
+        ADMIN_PROTECTED,
         UNAUTHORIZED,
         ERROR
     }

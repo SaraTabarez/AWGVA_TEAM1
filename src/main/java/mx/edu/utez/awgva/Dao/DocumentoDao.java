@@ -26,7 +26,9 @@ public class DocumentoDao {
             + "JOIN USUARIO u ON u.ID_USUARIO = v.ID_USUARIO_FK "
             + "JOIN DIVISION div ON div.ID_DIVISION = v.ID_DIVISION_FK "
             + "JOIN EMPRESA e ON e.ID_EMPRESA = v.ID_EMPRESA_FK "
-            + "LEFT JOIN GRUPO_VISITA g ON g.ID_VISITA_FK = v.ID_VISITA ";
+            + "LEFT JOIN (SELECT ID_VISITA_FK, "
+            + "LISTAGG(PROGRAMA_EDUCATIVO, ', ') WITHIN GROUP (ORDER BY ID_GRUPO) AS PROGRAMA_EDUCATIVO "
+            + "FROM GRUPO_VISITA GROUP BY ID_VISITA_FK) g ON g.ID_VISITA_FK = v.ID_VISITA ";
 
     private static final String MERGE_SQL = "MERGE INTO DOCUMENTO destino "
             + "USING (SELECT ? AS ID_VISITA_FK, ? AS TIPO_DOCUMENTO FROM DUAL) origen "
@@ -131,7 +133,8 @@ public class DocumentoDao {
         String consulta = "SELECT ID_VISITA_FK, UPPER(TIPO_DOCUMENTO) AS TIPO_DOCUMENTO "
                 + "FROM DOCUMENTO WHERE ID_DOCUMENTO = ?";
         String actualizacion = "UPDATE DOCUMENTO SET ESTADO = ?, OBSERVACIONES = ?, "
-                + "ID_REVISOR_FK = ?, REVISADO_EN = CURRENT_TIMESTAMP WHERE ID_DOCUMENTO = ?";
+                + "ID_REVISOR_FK = ?, REVISADO_EN = CURRENT_TIMESTAMP WHERE ID_DOCUMENTO = ? "
+                + "AND UPPER(ESTADO) = 'PENDIENTE'";
 
         try (Connection connection = DatabaseConnection.getConnection()) {
             connection.setAutoCommit(false);
@@ -158,10 +161,16 @@ public class DocumentoDao {
                 if ("REPORTE".equals(tipo)) {
                     actualizarEstadoVisita(connection, visitaId,
                             "ACEPTADO".equals(estado) ? "COMPLETADA" : "REPORTE_RECHAZADO");
-                } else if ("RECHAZADO".equals(estado)) {
-                    actualizarEstadoVisita(connection, visitaId, "DOCUMENTACION_RECHAZADA");
-                } else if (documentosBaseAceptados(connection, visitaId)) {
-                    actualizarEstadoVisita(connection, visitaId, "DOCUMENTACION_APROBADA");
+                } else if ("SOLICITUD_VISITA".equals(tipo)) {
+                    actualizarEstadoVisita(connection, visitaId,
+                            "ACEPTADO".equals(estado)
+                                    ? "SOLICITUD_APROBADA_ESTADIAS"
+                                    : "SOLICITUD_RECHAZADA_ESTADIAS");
+                } else if ("CARTA_RESPONSIVA".equals(tipo)) {
+                    actualizarEstadoVisita(connection, visitaId,
+                            "ACEPTADO".equals(estado)
+                                    ? "CARTA_APROBADA_ESTADIAS"
+                                    : "CARTA_RECHAZADA_ESTADIAS");
                 }
 
                 connection.commit();
@@ -189,18 +198,6 @@ public class DocumentoDao {
             statement.setString(9, documento.getNombreArchivo());
             statement.setLong(10, documento.getTamanoArchivo());
             statement.executeUpdate();
-        }
-    }
-
-    private boolean documentosBaseAceptados(Connection connection, Long visitaId) throws SQLException {
-        String sql = "SELECT COUNT(DISTINCT UPPER(TIPO_DOCUMENTO)) AS TOTAL FROM DOCUMENTO "
-                + "WHERE ID_VISITA_FK = ? AND UPPER(TIPO_DOCUMENTO) "
-                + "IN ('SOLICITUD_VISITA','CARTA_RESPONSIVA') AND UPPER(ESTADO) = 'ACEPTADO'";
-        try (PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setLong(1, visitaId);
-            try (ResultSet resultSet = statement.executeQuery()) {
-                return resultSet.next() && resultSet.getInt("TOTAL") == 2;
-            }
         }
     }
 
