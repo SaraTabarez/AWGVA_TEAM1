@@ -1,4 +1,4 @@
-ppackage mx.edu.utez.awgva.Dao;
+package mx.edu.utez.awgva.Dao;
 
 import mx.edu.utez.awgva.Model.Usuario;
 import mx.edu.utez.awgva.Utils.DatabaseConnection;
