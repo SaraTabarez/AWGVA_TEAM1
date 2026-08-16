@@ -223,6 +223,19 @@ public class UsuarioDao {
         }
     }
 
+    public boolean clearResetToken(String correo) {
+        String sql = "UPDATE USUARIO SET RESET_TOKEN = NULL, RESET_TOKEN_EXPIRATION = NULL, "
+                + "ACTUALIZADO_EN = CURRENT_TIMESTAMP WHERE LOWER(CORREO) = LOWER(?)";
+        try (Connection connection = DatabaseConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, correo);
+            return statement.executeUpdate() == 1;
+        } catch (SQLException exception) {
+            System.err.println("No fue posible limpiar el código de recuperación: " + exception.getMessage());
+            return false;
+        }
+    }
+
     public boolean updatePasswordHash(Long idUsuario, String newPasswordHash) {
         String sql = "UPDATE USUARIO SET PASSWORD_HASH = ?, ACTUALIZADO_EN = CURRENT_TIMESTAMP "
                 + "WHERE ID_USUARIO = ?";

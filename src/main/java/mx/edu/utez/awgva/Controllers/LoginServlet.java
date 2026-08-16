@@ -10,12 +10,17 @@ import mx.edu.utez.awgva.Model.Usuario;
 import mx.edu.utez.awgva.Service.LoginAttemptService;
 import mx.edu.utez.awgva.Service.UsuarioService;
 import mx.edu.utez.awgva.Utils.CsrfTokenUtil;
+import mx.edu.utez.awgva.Utils.PostNavigationResponse;
 
 import java.io.IOException;
 import java.util.Locale;
+import java.util.Map;
+import java.util.regex.Pattern;
 
 @WebServlet(name = "LoginServlet", value = "/login")
 public class LoginServlet extends HttpServlet {
+    private static final Pattern INSTITUTIONAL_EMAIL = Pattern.compile(
+            "^[A-Z0-9._%+-]+@utez\\.edu\\.mx$", Pattern.CASE_INSENSITIVE);
 
     private UsuarioService usuarioService;
     private LoginAttemptService loginAttemptService;
@@ -59,8 +64,6 @@ public class LoginServlet extends HttpServlet {
 
         loginAttemptService.recordSuccess(attemptKey);
 
-        // Evita fijación de sesión: se descarta cualquier sesión anterior antes
-        // de crear la sesión autenticada.
         HttpSession previousSession = request.getSession(false);
         if (previousSession != null) {
             previousSession.invalidate();
@@ -71,9 +74,8 @@ public class LoginServlet extends HttpServlet {
         session.setAttribute("usuario", usuario);
         session.setAttribute("nombreUsuario", usuario.getNombreCompleto());
         session.setAttribute("rol", usuario.getTipoRol().orElseThrow().name());
-        CsrfTokenUtil.rotate(session);
-
-        response.sendRedirect(request.getContextPath() + "/inicio");
+        String csrfToken = CsrfTokenUtil.rotate(session);
+        PostNavigationResponse.send(response, request.getContextPath() + "/inicio", csrfToken, Map.of());
     }
 
     @Override
@@ -85,7 +87,8 @@ public class LoginServlet extends HttpServlet {
         if (correo == null || correo.isBlank() || correo.length() > 160) {
             return null;
         }
-        return correo.trim().toLowerCase(Locale.ROOT);
+        String normalized = correo.trim().toLowerCase(Locale.ROOT);
+        return INSTITUTIONAL_EMAIL.matcher(normalized).matches() ? normalized : null;
     }
 
     private void showError(

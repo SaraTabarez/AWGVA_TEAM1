@@ -230,14 +230,15 @@
                 </div>
                 <% } %>
 
-                <form action="<%= request.getContextPath() %>/login" method="POST">
+                <form action="<%= request.getContextPath() %>/login" method="POST" id="loginForm">
+                    <input type="hidden" name="csrfToken" value="<%= session.getAttribute("csrfToken") %>">
 
                     <!-- Campo Correo / Matrícula -->
                     <div class="mb-3">
                         <label class="form-label-custom d-block">CORREO ELECTRÓNICO/MATRÍCULA:</label>
                         <div class="custom-input-group">
                             <i class="bi bi-envelope"></i>
-                            <input type="email" name="correo" maxlength="160" placeholder="usuario@utez.edu.mx" required>
+                            <input type="email" id="correoInput" name="correo" maxlength="160" placeholder="usuario@utez.edu.mx" pattern="[A-Za-z0-9._%+-]+@utez[.]edu[.]mx" title="Utiliza un correo institucional @utez.edu.mx" required>
                         </div>
                     </div>
 
@@ -258,8 +259,13 @@
 
                     <!-- Enlace Olvidaste tu contraseña -->
                     <div class="text-end">
-                        <a href="<%= request.getContextPath() %>/reset-password" class="forgot-link">¿Olvidaste tu contraseña?</a>
+                        <button type="button" class="forgot-link border-0 bg-transparent p-0" id="forgotPassword">¿Olvidaste tu contraseña?</button>
                     </div>
+                </form>
+                <form action="<%= request.getContextPath() %>/reset-password" method="post" id="recoveryForm" class="d-none">
+                    <input type="hidden" name="csrfToken" value="<%= session.getAttribute("csrfToken") %>">
+                    <input type="hidden" name="action" value="solicitar">
+                    <input type="hidden" name="correo" id="recoveryEmail">
                 </form>
 
             </div>
@@ -278,6 +284,21 @@
         password.setAttribute('type', type);
         toggleIcon.classList.toggle('bi-eye');
         toggleIcon.classList.toggle('bi-eye-slash');
+    });
+
+    const correoInput = document.querySelector('#correoInput');
+    const forgotPassword = document.querySelector('#forgotPassword');
+    const recoveryForm = document.querySelector('#recoveryForm');
+    const recoveryEmail = document.querySelector('#recoveryEmail');
+
+    forgotPassword.addEventListener('click', function () {
+        if (!correoInput.checkValidity()) {
+            correoInput.reportValidity();
+            correoInput.focus();
+            return;
+        }
+        recoveryEmail.value = correoInput.value.trim().toLowerCase();
+        recoveryForm.submit();
     });
 </script>
 

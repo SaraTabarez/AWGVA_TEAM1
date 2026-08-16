@@ -161,9 +161,9 @@
 <main class="main">
     <!-- Barra de Herramientas -->
     <div class="toolbar">
-        <a class="btn" href="${ctx}/detalle-solicitud?id=${expediente.idVisita}">
+        <button class="btn" type="button" data-post-url="${ctx}/detalle-solicitud" data-post-ref="<c:out value='${expediente.referenceToken}'/>">
             <i class="bi bi-arrow-left"></i> Volver
-        </a>
+        </button>
         <button class="btn" onclick="window.print()">
             <i class="bi bi-printer"></i> Imprimir / Descargar PDF
         </button>
@@ -178,7 +178,7 @@
         </div>
 
         <div class="folio">
-            OFICIO: AWGVA/<c:out value="${expediente.idVisita}"/>/2026
+            OFICIO DE AUTORIZACIÓN DE VISITA ACADÉMICA
         </div>
 
         <div class="date">
@@ -192,7 +192,7 @@
         </div>
 
         <p class="paragraph">
-            Por medio del presente, comunico a usted que la visita académica registrada con el folio <strong>#<c:out value="${expediente.idVisita}"/></strong> cuenta con la información necesaria para solicitar su autorización. La actividad se realizará conforme a los datos capturados por el docente responsable.
+            Por medio del presente, comunico a usted que la visita académica registrada en el expediente digital cuenta con la información necesaria para solicitar su autorización. La actividad se realizará conforme a los datos capturados por el docente responsable.
         </p>
 
         <!-- Datos de la Visita -->
@@ -250,8 +250,8 @@
         <div class="signature">
             <strong>ATENTAMENTE</strong><br><br><br>
             <div class="line">
-                JEFATURA DEL DEPARTAMENTO DE ESTADÍAS<br>
-                Universidad Tecnológica Emiliano Zapata
+                <c:out value="${firmantes.estadiasNombre}"/><br>
+                <c:out value="${firmantes.estadiasCargo}"/>
             </div>
         </div>
 

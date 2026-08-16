@@ -221,7 +221,7 @@
 
 <main class="main">
     <section class="panel">
-        <a class="close" href="${ctx}/mis-solicitudes" aria-label="Cerrar">×</a>
+        <button class="close" type="button" data-post-url="${ctx}/mis-solicitudes" aria-label="Cerrar">×</button>
 
         <h1>Solicitud de Visita Industrial-División Académica</h1>
 
@@ -307,48 +307,41 @@
 
                 <div class="actions-title">ACCIONES Y DOCUMENTACIÓN</div>
 
-                <!-- Fila de acciones 1 -->
                 <div class="action-grid">
-                    <a class="action blue" href="${ctx}/subir-solicitud-firmada?id=${expediente.idVisita}">
-                        <i class="bi bi-file-earmark-arrow-up"></i> Sol. c/firmas
-                    </a>
                     <c:choose>
-                        <c:when test="${cartaDescargada}">
-                            <a class="action blue" href="${ctx}/subir-carta-firmada?id=${expediente.idVisita}">
-                                <i class="bi bi-file-earmark-arrow-up"></i> Carta resp c/firmas
-                            </a>
+                        <c:when test="${expediente.estado == 'ACEPTADA_DIRECTOR' or expediente.estado == 'SOLICITUD_RECHAZADA_ESTADIAS'}">
+                            <button class="action blue" type="button" data-post-url="${ctx}/subir-solicitud-firmada" data-post-ref="<c:out value='${expediente.referenceToken}'/>"><i class="bi bi-file-earmark-arrow-up"></i> Solicitud firmada</button>
                         </c:when>
-                        <c:otherwise>
-                                <span class="action disabled" title="Descarga primero la carta responsiva">
-                                    <i class="bi bi-lock"></i> Carta resp c/firmas
-                                </span>
-                        </c:otherwise>
+                        <c:otherwise><span class="action disabled"><i class="bi bi-lock"></i> Solicitud firmada</span></c:otherwise>
                     </c:choose>
                     <c:choose>
-                        <c:when test="${cartaDescargada}">
-                            <a class="action blue" href="${ctx}/oficio-autorizacion?id=${expediente.idVisita}">
-                                <i class="bi bi-file-earmark-text"></i> Oficio de autorización
-                            </a>
+                        <c:when test="${cartaDescargada and (expediente.estado == 'SOLICITUD_APROBADA_ESTADIAS' or expediente.estado == 'CARTA_RECHAZADA_ESTADIAS')}">
+                            <button class="action blue" type="button" data-post-url="${ctx}/subir-carta-firmada" data-post-ref="<c:out value='${expediente.referenceToken}'/>"><i class="bi bi-file-earmark-arrow-up"></i> Carta firmada</button>
                         </c:when>
-                        <c:otherwise>
-                                <span class="action disabled" title="Descarga primero la carta responsiva">
-                                    <i class="bi bi-lock"></i> Oficio de autorización
-                                </span>
-                        </c:otherwise>
+                        <c:otherwise><span class="action disabled"><i class="bi bi-lock"></i> Carta firmada</span></c:otherwise>
+                    </c:choose>
+                    <c:choose>
+                        <c:when test="${expediente.estado == 'CARTA_APROBADA_ESTADIAS' or expediente.estado == 'OFICIO_GENERADO' or expediente.estado == 'REPORTE_EN_REVISION' or expediente.estado == 'REPORTE_RECHAZADO' or expediente.estado == 'COMPLETADA'}">
+                            <button class="action blue" type="button" data-post-url="${ctx}/oficio-autorizacion" data-post-ref="<c:out value='${expediente.referenceToken}'/>"><i class="bi bi-file-earmark-text"></i> Oficio</button>
+                        </c:when>
+                        <c:otherwise><span class="action disabled"><i class="bi bi-lock"></i> Oficio</span></c:otherwise>
                     </c:choose>
                 </div>
 
-                <!-- Fila de acciones 2 -->
                 <div class="action-grid">
-                    <a class="action blue" href="${ctx}/solicitud-previa?id=${expediente.idVisita}">
-                        <i class="bi bi-download"></i> Sol. s/firmas
-                    </a>
-                    <a class="action blue" href="${ctx}/carta-responsiva?id=${expediente.idVisita}">
-                        <i class="bi bi-download"></i> Carta resp s/firmas
-                    </a>
-                    <a class="action blue" href="${ctx}/reporte-docente?id=${expediente.idVisita}">
-                        <i class="bi bi-images"></i> Reporte
-                    </a>
+                    <button class="action blue" type="button" data-post-url="${ctx}/solicitud-previa" data-post-ref="<c:out value='${expediente.referenceToken}'/>"><i class="bi bi-download"></i> Solicitud sin firmas</button>
+                    <c:choose>
+                        <c:when test="${expediente.estado == 'SOLICITUD_APROBADA_ESTADIAS' or expediente.estado == 'CARTA_RECHAZADA_ESTADIAS' or expediente.estado == 'CARTA_APROBADA_ESTADIAS' or expediente.estado == 'OFICIO_GENERADO' or expediente.estado == 'REPORTE_EN_REVISION' or expediente.estado == 'REPORTE_RECHAZADO' or expediente.estado == 'COMPLETADA'}">
+                            <button class="action blue" type="button" data-post-url="${ctx}/carta-responsiva" data-post-ref="<c:out value='${expediente.referenceToken}'/>"><i class="bi bi-download"></i> Carta sin firmas</button>
+                        </c:when>
+                        <c:otherwise><span class="action disabled"><i class="bi bi-lock"></i> Carta sin firmas</span></c:otherwise>
+                    </c:choose>
+                    <c:choose>
+                        <c:when test="${expediente.estado == 'OFICIO_GENERADO' or expediente.estado == 'REPORTE_EN_REVISION' or expediente.estado == 'REPORTE_RECHAZADO'}">
+                            <button class="action blue" type="button" data-post-url="${ctx}/reporte-docente" data-post-ref="<c:out value='${expediente.referenceToken}'/>"><i class="bi bi-images"></i> Reporte</button>
+                        </c:when>
+                        <c:otherwise><span class="action disabled"><i class="bi bi-lock"></i> Reporte</span></c:otherwise>
+                    </c:choose>
                 </div>
 
                 <!-- Estado de documentos -->
@@ -365,13 +358,20 @@
                     </div>
                     <div></div>
                 </div>
+                <c:forEach var="doc" items="${expediente.documentos}">
+                    <div class="notice" style="margin-top:8px">
+                        <strong><c:out value="${doc.tipoLegible}"/>:</strong> <c:out value="${doc.estadoLegible}"/>
+                        <c:if test="${not empty doc.observaciones}"> · <c:out value="${doc.observaciones}"/></c:if>
+                        <button type="button" class="icon-btn" data-private-file="<c:out value='${doc.fileToken}'/>"><i class="bi bi-eye"></i> Ver</button>
+                    </div>
+                </c:forEach>
             </div>
         </div>
 
         <div class="footer">
-            <a class="action orange" href="${ctx}/mis-solicitudes">
+            <button class="action orange" type="button" data-post-url="${ctx}/mis-solicitudes">
                 <i class="bi bi-arrow-left"></i> Atrás
-            </a>
+            </button>
         </div>
     </section>
 </main>

@@ -14,6 +14,7 @@ import mx.edu.utez.awgva.Model.Usuario;
 import mx.edu.utez.awgva.Service.DocumentoService;
 import mx.edu.utez.awgva.Service.VisitaService;
 import mx.edu.utez.awgva.Utils.FileValidationUtil;
+import mx.edu.utez.awgva.Utils.RecordTokenUtil;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -28,7 +29,6 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 
-/** Carga de documentos del Docente. La visita siempre se valida contra el usuario autenticado. */
 @WebServlet(name = "DocumentoWorkflowServlet", urlPatterns = {
         "/docente/subir-documento", "/docente/subir-reporte"
 })
@@ -43,7 +43,14 @@ public class DocumentoWorkflowServlet extends HttpServlet {
             throws ServletException, IOException {
         request.setCharacterEncoding("UTF-8");
         Usuario docente = usuario(request);
-        Long visitaId = id(request.getParameter("idVisita"));
+        Long visitaId;
+        try {
+            visitaId = RecordTokenUtil.requireId(request.getSession(false), docente.getIdUsuario(),
+                    "docente-visita", request.getParameter("ref"));
+        } catch (IllegalArgumentException exception) {
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, exception.getMessage());
+            return;
+        }
         ExpedienteVisita expediente = visitaService.buscarDelDocente(visitaId, docente.getIdUsuario());
         if (expediente == null) {
             response.sendError(HttpServletResponse.SC_FORBIDDEN, "La solicitud no te pertenece.");
@@ -53,68 +60,97 @@ public class DocumentoWorkflowServlet extends HttpServlet {
         List<Path> creados = new ArrayList<>();
         try {
             if ("/docente/subir-documento".equals(request.getServletPath())) {
-                String tipo = subirDocumentoBase(request, visitaId, creados);
-                String resultado = "SOLICITUD_VISITA".equals(tipo)
-                        ? "/exito.jsp?id=" + visitaId
-                        : "/cartaEnviadaExito.jsp?id=" + visitaId;
-                response.sendRedirect(request.getContextPath() + resultado);
+                String tipo = subirDocumentoBase(request, expediente, visitaId, creados);
+                request.setAttribute("referenceToken", RecordTokenUtil.issue(request.getSession(),
+                        docente.getIdUsuario(), "docente-visita", visitaId));
+                request.getRequestDispatcher("SOLICITUD_VISITA".equals(tipo)
+                        ? "/exito.jsp" : "/cartaEnviadaExito.jsp").forward(request, response);
             } else {
-                subirReporte(request, visitaId, creados);
-                response.sendRedirect(request.getContextPath() + "/reporte-exito.jsp?id=" + visitaId);
+                subirReporte(request, expediente, visitaId, creados);
+                request.getRequestDispatcher("/reporte-exito.jsp").forward(request, response);
             }
         } catch (IllegalArgumentException exception) {
             limpiar(creados);
             request.getSession().setAttribute("mensajeCarga", exception.getMessage());
-            String ruta;
-            if ("/docente/subir-reporte".equals(request.getServletPath())) {
-                ruta = "/reporte-docente?id=" + visitaId;
-            } else if ("CARTA_RESPONSIVA".equals(request.getParameter("tipo"))) {
-                ruta = "/subir-carta-firmada?id=" + visitaId;
-            } else {
-                ruta = "/subir-solicitud-firmada?id=" + visitaId;
-            }
-            response.sendRedirect(request.getContextPath() + ruta);
+            String ruta = "/docente/subir-reporte".equals(request.getServletPath())
+                    ? "/reporte-docente"
+                    : ("CARTA_RESPONSIVA".equals(request.getParameter("tipo"))
+                    ? "/subir-carta-firmada" : "/subir-solicitud-firmada");
+            request.getRequestDispatcher(ruta).forward(request, response);
         }
     }
 
-    private String subirDocumentoBase(HttpServletRequest request, Long visitaId, List<Path> creados)
+    private String subirDocumentoBase(HttpServletRequest request, ExpedienteVisita expediente,
+                                      Long visitaId, List<Path> creados)
             throws IOException, ServletException {
         String tipo = request.getParameter("tipo");
         if (!"SOLICITUD_VISITA".equals(tipo) && !"CARTA_RESPONSIVA".equals(tipo)) {
             throw new IllegalArgumentException("Sólo puedes subir la Solicitud de visita o la Carta responsiva aquí.");
         }
+        String estado = estado(expediente);
+        if ("SOLICITUD_VISITA".equals(tipo)
+                && !Set.of("ACEPTADA_DIRECTOR", "SOLICITUD_RECHAZADA_ESTADIAS").contains(estado)) {
+            throw new IllegalArgumentException("La solicitud firmada no está habilitada en el estado actual.");
+        }
+        if ("CARTA_RESPONSIVA".equals(tipo)
+                && !Set.of("SOLICITUD_APROBADA_ESTADIAS", "CARTA_RECHAZADA_ESTADIAS").contains(estado)) {
+            throw new IllegalArgumentException("La carta responsiva no está habilitada en el estado actual.");
+        }
         Documento documento = guardarParte(request.getPart("archivo"), visitaId, tipo, Set.of(".pdf"), creados);
         if (!documentoService.guardar(documento)) {
-            throw new IllegalArgumentException("Oracle no pudo registrar el documento.");
+            throw new IllegalArgumentException("No fue posible registrar el documento.");
         }
         return tipo;
     }
 
-    /**
-     * El reporte del docente está formado únicamente por tres evidencias fotográficas.
-     * Se registra un marcador interno de tipo REPORTE para conservar el flujo de revisión de Estadías,
-     * sin solicitar ni mostrar un PDF adicional al docente.
-     */
-    private void subirReporte(HttpServletRequest request, Long visitaId, List<Path> creados)
+    private void subirReporte(HttpServletRequest request, ExpedienteVisita expediente,
+                              Long visitaId, List<Path> creados)
             throws IOException, ServletException {
+        if (!Set.of("OFICIO_GENERADO", "REPORTE_RECHAZADO").contains(estado(expediente))) {
+            throw new IllegalArgumentException("El reporte no está habilitado en el estado actual.");
+        }
+        boolean existe = documentoService.buscarPorVisitaYTipo(visitaId, "REPORTE") != null;
         List<Documento> documentos = new ArrayList<>();
-        documentos.add(crearMarcadorReporte(visitaId, creados));
-        documentos.add(guardarParte(request.getPart("evidencia1"), visitaId, "EVIDENCIA_1", IMAGENES, creados));
-        documentos.add(guardarParte(request.getPart("evidencia2"), visitaId, "EVIDENCIA_2", IMAGENES, creados));
-        documentos.add(guardarParte(request.getPart("evidencia3"), visitaId, "EVIDENCIA_3", IMAGENES, creados));
+        documentos.add(crearReporte(expediente, visitaId, creados));
+        agregarEvidencia(request.getPart("evidencia1"), visitaId, "EVIDENCIA_1", documentos, creados, existe);
+        agregarEvidencia(request.getPart("evidencia2"), visitaId, "EVIDENCIA_2", documentos, creados, existe);
+        agregarEvidencia(request.getPart("evidencia3"), visitaId, "EVIDENCIA_3", documentos, creados, existe);
+        if (documentos.size() == 1) {
+            throw new IllegalArgumentException("Selecciona al menos una evidencia para actualizar el reporte.");
+        }
         if (!documentoService.guardarLote(documentos)) {
-            throw new IllegalArgumentException("Oracle no pudo registrar el reporte.");
+            throw new IllegalArgumentException("No fue posible registrar el reporte.");
         }
     }
 
-    private Documento crearMarcadorReporte(Long visitaId, List<Path> creados) throws IOException {
+    private void agregarEvidencia(Part part, Long visitaId, String tipo, List<Documento> documentos,
+                                  List<Path> creados, boolean existe) throws IOException {
+        if (part == null || part.getSize() <= 0 || part.getSubmittedFileName() == null
+                || part.getSubmittedFileName().isBlank()) {
+            if (!existe) throw new IllegalArgumentException("Selecciona las tres evidencias obligatorias.");
+            return;
+        }
+        documentos.add(guardarParte(part, visitaId, tipo, IMAGENES, creados));
+    }
+
+    private Documento crearReporte(ExpedienteVisita expediente, Long visitaId, List<Path> creados) throws IOException {
         Path carpeta = carpetaCarga().resolve(String.valueOf(visitaId)).normalize();
         Files.createDirectories(carpeta);
-        Path destino = carpeta.resolve("reporte-" + UUID.randomUUID() + ".txt");
-        String contenido = "Reporte de visita académica\n"
-                + "Solicitud: " + visitaId + "\n"
-                + "Enviado: " + LocalDateTime.now() + "\n"
-                + "Contenido: tres evidencias fotográficas.\n";
+        Path destino = carpeta.resolve("reporte-" + UUID.randomUUID() + ".html");
+        String contenido = "<!doctype html><html lang=\"es\"><head><meta charset=\"UTF-8\">"
+                + "<title>Reporte de visita académica</title><style>body{font-family:Arial,sans-serif;margin:48px;color:#17324d}"
+                + "h1{border-bottom:3px solid #f08a24;padding-bottom:12px}.dato{margin:14px 0}strong{display:block}</style>"
+                + "</head><body><h1>Reporte de visita académica</h1>"
+                + dato("Empresa visitada", expediente.getEmpresa())
+                + dato("Docente responsable", expediente.getDocente())
+                + dato("División", expediente.getDivision())
+                + dato("Carrera y grupo", expediente.getCarrera() + " · " + expediente.getSemestre()
+                + " · " + expediente.getGrupo())
+                + dato("Periodo de la visita", expediente.getFechaInicio() + " a " + expediente.getFechaFin())
+                + dato("Objetivo", expediente.getProposito())
+                + dato("Evidencias", "Las evidencias fotográficas se encuentran anexas en el expediente digital.")
+                + dato("Fecha de envío", LocalDateTime.now().toLocalDate().toString())
+                + "</body></html>";
         Files.writeString(destino, contenido, StandardCharsets.UTF_8);
         creados.add(destino);
 
@@ -122,9 +158,23 @@ public class DocumentoWorkflowServlet extends HttpServlet {
         documento.setIdVisitaFk(visitaId);
         documento.setTipoDocumento("REPORTE");
         documento.setRutaArchivo(destino.toAbsolutePath().toString());
-        documento.setNombreArchivo("Reporte de visita (3 evidencias)");
+        documento.setNombreArchivo("Reporte final de visita.html");
         documento.setTamanoArchivo(Files.size(destino));
         return documento;
+    }
+
+    private String dato(String titulo, Object valor) {
+        return "<div class=\"dato\"><strong>" + html(titulo) + "</strong>"
+                + html(valor == null ? "" : String.valueOf(valor)) + "</div>";
+    }
+
+    private String html(String valor) {
+        return valor == null ? "" : valor.replace("&", "&amp;").replace("<", "&lt;")
+                .replace(">", "&gt;").replace("\"", "&quot;").replace("'", "&#39;");
+    }
+
+    private String estado(ExpedienteVisita expediente) {
+        return expediente.getEstado() == null ? "" : expediente.getEstado().trim().toUpperCase(Locale.ROOT);
     }
 
     private Documento guardarParte(Part part, Long visitaId, String tipo,
@@ -180,9 +230,7 @@ public class DocumentoWorkflowServlet extends HttpServlet {
         for (Path path : paths) {
             try {
                 Files.deleteIfExists(path);
-            } catch (IOException ignored) {
-                // La limpieza no debe ocultar el mensaje de validación original.
-            }
+            } catch (IOException ignored) { }
         }
     }
 
@@ -198,16 +246,6 @@ public class DocumentoWorkflowServlet extends HttpServlet {
     private String extension(String nombre) {
         int punto = nombre.lastIndexOf('.');
         return punto < 0 ? "" : nombre.substring(punto).toLowerCase(Locale.ROOT);
-    }
-
-    private Long id(String valor) {
-        try {
-            long id = Long.parseLong(valor);
-            if (id < 1) throw new NumberFormatException();
-            return id;
-        } catch (NumberFormatException | NullPointerException exception) {
-            throw new IllegalArgumentException("Solicitud no válida.");
-        }
     }
 
     private Usuario usuario(HttpServletRequest request) {

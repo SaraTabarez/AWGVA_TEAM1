@@ -102,8 +102,8 @@
     <div>Correo electrónico</div><div><c:out value="${solicitud.empresaEmail}"/></div>
     <div>Fecha de inicio / término</div>
     <div><c:out value="${solicitud.fechaInicio}"/>
-    al <c:out value="${solicitud.fechaTermino}"/>
-    · Hora: <c:out value="${solicitud.horaInicio}"/>
+      al <c:out value="${solicitud.fechaTermino}"/>
+      · Hora: <c:out value="${solicitud.horaInicio}"/>
     </div>
   </div>
   <div class="section">Objetivo de la visita</div><div class="objective"><c:out value="${solicitud.objetivo}"/></div>
@@ -146,12 +146,14 @@
     </tr>
     </thead>
     <tbody>
-    <tr>
-      <td><c:out value="${solicitud.programaEducativo}"/></td>
-      <td><c:out value="${solicitud.semestre}"/></td>
-      <td><c:out value="${solicitud.grupo}"/></td>
-      <td><c:out value="${solicitud.totalEstudiantes}"/></td>
-    </tr>
+    <c:forEach var="grupo" items="${solicitud.grupos}">
+      <tr>
+        <td><c:out value="${grupo.carrera}"/> - <c:out value="${grupo.area}"/></td>
+        <td><c:out value="${grupo.cuatrimestre}"/></td>
+        <td><c:out value="${grupo.grupo}"/></td>
+        <td><c:out value="${grupo.cantidadAlumnos}"/></td>
+      </tr>
+    </c:forEach>
     </tbody>
   </table>
   <div class="section">Asignaturas que se reforzarán con la visita</div>
@@ -159,25 +161,25 @@
 
   <div class="signatures">
     <div><strong>Solicita</strong>
-      <div class="line">Nombre del docente responsable<br>de la visita</div>
+      <div class="line"><c:out value="${firmantes.docenteNombre}"/><br><c:out value="${firmantes.docenteCargo}"/></div>
     </div>
     <div>
       <strong>Autoriza</strong>
-      <div class="line">Nombre y cargo del director de<br><c:out value="${divisionDocente}"/></div>
+      <div class="line"><c:out value="${firmantes.directorNombre}"/><br><c:out value="${firmantes.directorCargo}"/> - <c:out value="${divisionDocente}"/></div>
     </div>
   </div>
 
   <div class="actions">
-    <c:choose><c:when test="${empty idVisita}">
-      <a class="btn back" href="${ctx}/nueva-solicitud?editar=1">Atrás</a>
+    <c:choose><c:when test="${empty referenceToken}">
+      <button class="btn back" type="button" data-post-url="${ctx}/nueva-solicitud?editar=1">Atrás</button>
     </c:when>
       <c:otherwise>
-      <a class="btn back" href="${ctx}/detalle-solicitud?id=${idVisita}">Atrás</a>
+        <button class="btn back" type="button" data-post-url="${ctx}/detalle-solicitud" data-post-ref="<c:out value='${referenceToken}'/>">Atrás</button>
       </c:otherwise>
     </c:choose>
 
     <c:choose>
-      <c:when test="${empty idVisita}">
+      <c:when test="${empty referenceToken}">
         <form action="${ctx}/confirmar-solicitud" method="post">
           <input type="hidden" name="csrfToken" value="<c:out value='${sessionScope.csrfToken}'/>">
           <button class="btn download" type="submit">Descargar</button>
@@ -192,15 +194,15 @@
 </article>
 </div>
 <script>
-  const ctx='${ctx}', idVisita='${idVisita}', csrf='<c:out value="${sessionScope.csrfToken}"/>';
+  const ctx='${ctx}', referenceToken='<c:out value="${referenceToken}"/>', csrf='<c:out value="${sessionScope.csrfToken}"/>';
   let redirectAfterPrint=false;
   function imprimir(){redirectAfterPrint=true;window.print();}
   async function descargarExistente(){
-    const body=new URLSearchParams({csrfToken:csrf,idVisita:idVisita,tipo:'SOLICITUD_VISITA'});
+    const body=new URLSearchParams({csrfToken:csrf,ref:referenceToken,tipo:'SOLICITUD_VISITA'});
     try{await fetch(ctx+'/docente/marcar-descarga',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body});}catch(e){}
     imprimir();
   }
-  window.addEventListener('afterprint',()=>{if(redirectAfterPrint&&idVisita)location.href=ctx+'/detalle-solicitud?id='+idVisita;});
+  window.addEventListener('afterprint',()=>{if(redirectAfterPrint&&referenceToken)window.awgvaPost(ctx+'/detalle-solicitud',{ref:referenceToken});});
   <c:if test="${autoPrint}">window.addEventListener('load',()=>setTimeout(imprimir,300));</c:if>
 </script>
 </body>

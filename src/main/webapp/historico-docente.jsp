@@ -78,7 +78,7 @@
         <table class="table table-hover align-middle text-center mb-0">
             <thead class="table-header-dark">
             <tr>
-                <th>ID</th>
+                <th>ESTADO</th>
                 <th>EMPRESA</th>
                 <th>LUGAR</th>
                 <th>FECHA</th>
@@ -90,13 +90,13 @@
             <tbody>
             <c:forEach var="sol" items="${solicitudes}">
                 <tr>
-                    <td><c:out value="${sol.idVisita}"/></td>
+                    <td><c:out value="${sol.estadoLegible}"/></td>
                     <td><c:out value="${sol.empresa}"/></td>
                     <td><c:out value="${sol.direccionEmpresa}"/></td>
                     <td><c:out value="${sol.fechaFin}"/></td>
                     <td><c:out value="${sol.carrera}"/></td>
                     <td><c:out value="${sol.semestre}"/> <c:out value="${sol.grupo}"/></td>
-                    <td><a class="btn btn-custom-dark btn-sm px-4" href="${pageContext.request.contextPath}/detalle-solicitud?id=${sol.idVisita}"><i class="bi bi-eye"></i></a></td>
+                    <td><button type="button" class="btn btn-custom-dark btn-sm px-4" data-post-url="${pageContext.request.contextPath}/detalle-solicitud" data-post-ref="<c:out value='${sol.referenceToken}'/>"><i class="bi bi-eye"></i></button></td>
                 </tr>
             </c:forEach>
             <c:if test="${empty solicitudes}">
