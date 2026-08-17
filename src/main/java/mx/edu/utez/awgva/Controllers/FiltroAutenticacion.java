@@ -142,8 +142,7 @@ public class FiltroAutenticacion extends HttpFilter {
         }
 
         if (PUBLIC_PATHS.contains(path)) {
-            PostNavigationResponse.send(response, contextPath + "/inicio",
-                    CsrfTokenUtil.getOrCreate(session), Map.of());
+            response.sendRedirect(contextPath + "/inicio");
             return;
         }
 

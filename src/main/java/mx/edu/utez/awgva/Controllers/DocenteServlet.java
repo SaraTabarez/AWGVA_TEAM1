@@ -50,8 +50,22 @@ public class DocenteServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
-            throws IOException {
-        response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
+            throws ServletException, IOException {
+        request.setCharacterEncoding("UTF-8");
+        switch (request.getServletPath()) {
+            case "/mis-solicitudes",
+                 "/nueva-solicitud",
+                 "/solicitud-previa",
+                 "/detalle-solicitud",
+                 "/carta-responsiva",
+                 "/oficio-autorizacion",
+                 "/subir-solicitud-firmada",
+                 "/subir-carta-firmada",
+                 "/reportes-docente",
+                 "/historico-docente",
+                 "/reporte-docente" -> handleView(request, response);
+            default -> response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
+        }
     }
 
     private void handleView(HttpServletRequest request, HttpServletResponse response)

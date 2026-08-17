@@ -9,6 +9,8 @@ import jakarta.servlet.http.HttpSession;
 import mx.edu.utez.awgva.Model.TipoRol;
 import mx.edu.utez.awgva.Model.Usuario;
 import mx.edu.utez.awgva.Service.VisitaService;
+import mx.edu.utez.awgva.Utils.CsrfTokenUtil;
+import mx.edu.utez.awgva.Utils.PostNavigationResponse;
 
 import java.io.IOException;
 import java.util.Map;
@@ -27,12 +29,17 @@ public class InicioServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
-            throws IOException {
-        response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
+            throws ServletException, IOException {
+        showHome(request, response);
     }
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        showHome(request, response);
+    }
+
+    private void showHome(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         HttpSession session = request.getSession(false);
         Usuario usuario = session == null ? null : (Usuario) session.getAttribute("usuario");
@@ -48,11 +55,21 @@ public class InicioServlet extends HttpServlet {
 
         request.setAttribute("role", role.name());
         if (role == TipoRol.DIRECTOR) {
-            request.getRequestDispatcher("/director/solicitudes").forward(request, response);
+            PostNavigationResponse.send(
+                    response,
+                    request.getContextPath() + "/director/solicitudes",
+                    CsrfTokenUtil.getOrCreate(session),
+                    Map.of()
+            );
             return;
         }
         if (role == TipoRol.ESTADIAS) {
-            request.getRequestDispatcher("/estadias/documentos").forward(request, response);
+            PostNavigationResponse.send(
+                    response,
+                    request.getContextPath() + "/estadias/documentos",
+                    CsrfTokenUtil.getOrCreate(session),
+                    Map.of()
+            );
             return;
         }
         if (role == TipoRol.DOCENTE) {

@@ -10,11 +10,9 @@ import mx.edu.utez.awgva.Model.Usuario;
 import mx.edu.utez.awgva.Service.LoginAttemptService;
 import mx.edu.utez.awgva.Service.UsuarioService;
 import mx.edu.utez.awgva.Utils.CsrfTokenUtil;
-import mx.edu.utez.awgva.Utils.PostNavigationResponse;
 
 import java.io.IOException;
 import java.util.Locale;
-import java.util.Map;
 import java.util.regex.Pattern;
 
 @WebServlet(name = "LoginServlet", value = "/login")
@@ -74,8 +72,8 @@ public class LoginServlet extends HttpServlet {
         session.setAttribute("usuario", usuario);
         session.setAttribute("nombreUsuario", usuario.getNombreCompleto());
         session.setAttribute("rol", usuario.getTipoRol().orElseThrow().name());
-        String csrfToken = CsrfTokenUtil.rotate(session);
-        PostNavigationResponse.send(response, request.getContextPath() + "/inicio", csrfToken, Map.of());
+        CsrfTokenUtil.rotate(session);
+        response.sendRedirect(request.getContextPath() + "/inicio");
     }
 
     @Override
