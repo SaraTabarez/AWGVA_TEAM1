@@ -92,19 +92,22 @@ public class ExpedienteVisita {
     public String getEstadoLegible() {
         if (estado == null) return "Sin estado";
         return switch (estado.trim().toUpperCase()) {
-            case "PENDIENTE", "PENDIENTE_DIRECTOR" -> "Pendiente";
-            case "ACEPTADA", "ACEPTADA_DIRECTOR" -> "Aceptada";
-            case "RECHAZADA", "RECHAZADA_DIRECTOR" -> "Rechazada";
-            case "SOLICITUD_APROBADA_ESTADIAS" -> "Solicitud aceptada por Estadías";
-            case "SOLICITUD_RECHAZADA_ESTADIAS" -> "Solicitud con correcciones";
-            case "CARTA_APROBADA_ESTADIAS" -> "Carta responsiva aceptada";
-            case "CARTA_RECHAZADA_ESTADIAS" -> "Carta responsiva con correcciones";
-            case "OFICIO_GENERADO" -> "Oficio generado";
+            case "PENDIENTE" -> "Pendiente";
+            case "PENDIENTE_DIRECTOR" -> "Pendiente de revisión por Dirección";
+            case "ACEPTADA" -> "Aceptada";
+            case "ACEPTADA_DIRECTOR" -> "Aprobada por Dirección · esperando solicitud firmada";
+            case "RECHAZADA" -> "Rechazada";
+            case "RECHAZADA_DIRECTOR" -> "Rechazada por Dirección";
+            case "SOLICITUD_APROBADA_ESTADIAS" -> "Solicitud firmada aceptada · carta habilitada";
+            case "SOLICITUD_RECHAZADA_ESTADIAS" -> "Solicitud firmada rechazada · requiere corrección";
+            case "CARTA_APROBADA_ESTADIAS" -> "Carta aceptada · oficio y reporte habilitados";
+            case "CARTA_RECHAZADA_ESTADIAS" -> "Carta rechazada · requiere corrección";
+            case "OFICIO_GENERADO" -> "Oficio generado · reporte pendiente";
             case "DOCUMENTACION_APROBADA" -> "Documentación aprobada";
             case "DOCUMENTACION_RECHAZADA" -> "Documentación con correcciones";
-            case "REPORTE_EN_REVISION" -> "Reporte en revisión";
-            case "REPORTE_RECHAZADO" -> "Reporte con correcciones";
-            case "COMPLETADA" -> "Completada";
+            case "REPORTE_EN_REVISION" -> "Reporte pendiente de revisión";
+            case "REPORTE_RECHAZADO" -> "Reporte rechazado · requiere corrección";
+            case "COMPLETADA" -> "Finalizada";
             default -> estado.replace('_', ' ');
         };
     }

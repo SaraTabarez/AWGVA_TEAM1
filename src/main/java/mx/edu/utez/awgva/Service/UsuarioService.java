@@ -74,6 +74,14 @@ public class UsuarioService {
         return usuarioDao.findAll();
     }
 
+    public List<Usuario> findActiveByRole(String roleName) {
+        return usuarioDao.findActiveByRole(roleName);
+    }
+
+    public List<String> findActiveEmailsByRoleAndDivision(String roleName, Long idDivision) {
+        return usuarioDao.findActiveEmailsByRoleAndDivision(roleName, idDivision);
+    }
+
     public Map<Long, String> findRoles() {
         return usuarioDao.findRoles();
     }
@@ -119,9 +127,12 @@ public class UsuarioService {
         if (normalized == null) {
             return PasswordResetRequest.INVALID_EMAIL;
         }
-        Usuario usuario = usuarioDao.findByEmail(normalized);
+        Usuario usuario = usuarioDao.findByEmailIncludingInactive(normalized);
         if (usuario == null) {
             return PasswordResetRequest.ACCOUNT_NOT_FOUND;
+        }
+        if (usuario.getEstado() == null || usuario.getEstado() != 1) {
+            return PasswordResetRequest.ACCOUNT_INACTIVE;
         }
 
         String code = generateRandomCode(6);
@@ -229,11 +240,11 @@ public class UsuarioService {
     }
 
     private void validatePassword(String password) {
-        if (password == null || password.length() < 10
-                || !password.matches(".[A-Z].")
-                || !password.matches(".[a-z].")
-                || !password.matches(".\\d.")
-                || !password.matches(".[^A-Za-z0-9].")) {
+        if (password == null || password.length() < 10 || password.length() > 200
+                || !password.matches(".*[A-Z].*")
+                || !password.matches(".*[a-z].*")
+                || !password.matches(".*\\d.*")
+                || !password.matches(".*[^A-Za-z0-9].*")) {
             throw new IllegalArgumentException(
                     "La contraseña debe tener al menos 10 caracteres, mayúscula, minúscula, número y símbolo."
             );
@@ -275,6 +286,7 @@ public class UsuarioService {
         SENT,
         INVALID_EMAIL,
         ACCOUNT_NOT_FOUND,
+        ACCOUNT_INACTIVE,
         ERROR
     }
 

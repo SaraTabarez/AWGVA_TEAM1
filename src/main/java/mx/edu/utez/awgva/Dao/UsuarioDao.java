@@ -72,6 +72,30 @@ public class UsuarioDao {
         }
     }
 
+    /** Busca una cuenta por correo sin ocultar las cuentas inactivas.
+     * Se usa únicamente para distinguir entre correo inexistente e inactivo
+     * durante la recuperación de contraseña.
+     */
+    public Usuario findByEmailIncludingInactive(String correo) {
+        String sql = "SELECT " + USER_COLUMNS
+                + ", r.ROL AS NOMBRE_ROL, d.DIVISION AS NOMBRE_DIVISION "
+                + "FROM USUARIO u "
+                + "JOIN ROL r ON r.ID_ROL = u.ID_ROL_FK "
+                + "LEFT JOIN DIVISION d ON d.ID_DIVISION = u.ID_DIVISION_FK "
+                + "WHERE LOWER(u.CORREO) = LOWER(?)";
+
+        try (Connection connection = DatabaseConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, correo);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                return resultSet.next() ? mapUsuario(resultSet) : null;
+            }
+        } catch (SQLException exception) {
+            System.err.println("No fue posible consultar la cuenta por correo: " + exception.getMessage());
+            return null;
+        }
+    }
+
     public Usuario findById(Long idUsuario) {
         if (idUsuario == null) {
             return null;
@@ -265,6 +289,58 @@ public class UsuarioDao {
             System.err.println("No fue posible validar el código: " + exception.getMessage());
             return false;
         }
+    }
+
+    /** Lista usuarios activos de un rol. Útil para mostrar los docentes disponibles como firmantes. */
+    public List<Usuario> findActiveByRole(String roleName) {
+        List<Usuario> usuarios = new ArrayList<>();
+        if (roleName == null || roleName.isBlank()) return usuarios;
+
+        String sql = "SELECT " + LIST_COLUMNS
+                + ", r.ROL AS NOMBRE_ROL, d.DIVISION AS NOMBRE_DIVISION "
+                + "FROM USUARIO u "
+                + "JOIN ROL r ON r.ID_ROL = u.ID_ROL_FK "
+                + "LEFT JOIN DIVISION d ON d.ID_DIVISION = u.ID_DIVISION_FK "
+                + "WHERE u.ESTADO = 1 AND UPPER(TRIM(r.ROL)) = UPPER(TRIM(?)) "
+                + "ORDER BY u.NOMBRES, u.APELLIDO_PATERNO, u.APELLIDO_MATERNO";
+
+        try (Connection connection = DatabaseConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, roleName);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) usuarios.add(mapUsuario(resultSet));
+            }
+        } catch (SQLException exception) {
+            System.err.println("No fue posible listar usuarios activos por rol: " + exception.getMessage());
+        }
+        return usuarios;
+    }
+
+    /** Obtiene destinatarios activos de un rol dentro de una división. */
+    public List<String> findActiveEmailsByRoleAndDivision(String roleName, Long idDivision) {
+        List<String> correos = new ArrayList<>();
+        if (roleName == null || roleName.isBlank()) return correos;
+
+        StringBuilder sql = new StringBuilder(
+                "SELECT u.CORREO FROM USUARIO u JOIN ROL r ON r.ID_ROL = u.ID_ROL_FK "
+                        + "WHERE u.ESTADO = 1 AND UPPER(TRIM(r.ROL)) = UPPER(TRIM(?)) ");
+        if (idDivision != null) sql.append("AND u.ID_DIVISION_FK = ? ");
+        sql.append("ORDER BY u.ID_USUARIO");
+
+        try (Connection connection = DatabaseConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql.toString())) {
+            statement.setString(1, roleName);
+            if (idDivision != null) statement.setLong(2, idDivision);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    String correo = resultSet.getString("CORREO");
+                    if (correo != null && !correo.isBlank()) correos.add(correo.trim());
+                }
+            }
+        } catch (SQLException exception) {
+            System.err.println("No fue posible cargar destinatarios por rol: " + exception.getMessage());
+        }
+        return correos;
     }
 
     public Map<Long, String> findRoles() {

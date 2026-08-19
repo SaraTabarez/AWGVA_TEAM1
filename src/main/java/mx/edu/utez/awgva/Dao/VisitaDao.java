@@ -1,4 +1,3 @@
-
 package mx.edu.utez.awgva.Dao;
 
 import mx.edu.utez.awgva.Model.Empresa;
@@ -78,6 +77,27 @@ public class VisitaDao {
         }
     }
 
+    /** Inicio de Administración: todas las solicitudes que todavía están en proceso. */
+    public List<ExpedienteVisita> listarTodasActivasAdmin() {
+        return consultarLista(BASE_SELECT
+                        + "WHERE UPPER(v.ESTADO) <> 'COMPLETADA' ORDER BY v.CREADO_EN DESC",
+                statement -> { });
+    }
+
+    /** Bandeja Solicitudes de Administración: el expediente permanece aquí hasta que se adjunta el reporte. */
+    public List<ExpedienteVisita> listarSolicitudesAdmin() {
+        return consultarLista(BASE_SELECT
+                + "WHERE UPPER(v.ESTADO) NOT IN ('REPORTE_EN_REVISION','REPORTE_RECHAZADO','COMPLETADA') "
+                + "ORDER BY v.CREADO_EN DESC", statement -> { });
+    }
+
+    /** Histórico de Administración: únicamente expedientes finalizados con reporte aceptado. */
+    public List<ExpedienteVisita> listarHistoricoAdmin() {
+        return consultarLista(BASE_SELECT
+                + "WHERE UPPER(v.ESTADO) = 'COMPLETADA' AND UPPER(rep.ESTADO_REPORTE) = 'ACEPTADO' "
+                + "ORDER BY v.FECHA_FIN_VISITA DESC", statement -> { });
+    }
+
     public List<ExpedienteVisita> listarDelDocente(Long idUsuario) {
         return consultarLista(BASE_SELECT
                         + "WHERE v.ID_USUARIO_FK = ? ORDER BY v.CREADO_EN DESC",
@@ -87,15 +107,16 @@ public class VisitaDao {
     public List<ExpedienteVisita> listarSolicitudesActivasDocente(Long idUsuario) {
         return consultarLista(BASE_SELECT
                         + "WHERE v.ID_USUARIO_FK = ? "
-                        + "AND UPPER(v.ESTADO) NOT IN ('OFICIO_GENERADO','REPORTE_EN_REVISION',"
-                        + "'REPORTE_RECHAZADO','COMPLETADA') ORDER BY v.CREADO_EN DESC",
+                        + "AND UPPER(v.ESTADO) NOT IN ('REPORTE_EN_REVISION','REPORTE_RECHAZADO','COMPLETADA') "
+                        + "ORDER BY v.CREADO_EN DESC",
                 statement -> statement.setLong(1, idUsuario));
     }
 
     public List<ExpedienteVisita> listarReportesDelDocente(Long idUsuario) {
         return consultarLista(BASE_SELECT
-                        + "WHERE v.ID_USUARIO_FK = ? AND (rep.ESTADO_REPORTE IS NOT NULL "
-                        + "OR UPPER(v.ESTADO) IN ('OFICIO_GENERADO','REPORTE_EN_REVISION','REPORTE_RECHAZADO')) "
+                        + "WHERE v.ID_USUARIO_FK = ? "
+                        + "AND (rep.ESTADO_REPORTE IS NOT NULL "
+                        + "OR UPPER(v.ESTADO) IN ('REPORTE_EN_REVISION','REPORTE_RECHAZADO')) "
                         + "AND UPPER(v.ESTADO) <> 'COMPLETADA' ORDER BY v.CREADO_EN DESC",
                 statement -> statement.setLong(1, idUsuario));
     }

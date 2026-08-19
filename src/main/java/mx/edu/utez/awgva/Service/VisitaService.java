@@ -29,6 +29,18 @@ public class VisitaService {
         return visitaDao.obtenerVisitasPorUsuario(idUsuario);
     }
 
+    public List<ExpedienteVisita> listarTodasActivasAdmin() {
+        return visitaDao.listarTodasActivasAdmin();
+    }
+
+    public List<ExpedienteVisita> listarSolicitudesAdmin() {
+        return visitaDao.listarSolicitudesAdmin();
+    }
+
+    public List<ExpedienteVisita> listarHistoricoAdmin() {
+        return visitaDao.listarHistoricoAdmin();
+    }
+
     public List<ExpedienteVisita> listarDelDocente(Long idUsuario) {
         return visitaDao.listarDelDocente(idUsuario);
     }
