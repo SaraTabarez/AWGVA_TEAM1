@@ -42,7 +42,7 @@
         </div>
         <p class="paragraph">El docente responsable se compromete a mantener el control del grupo, atender los protocolos de la Universidad y de la empresa receptora, y reportar cualquier incidente a la Jefatura de Estadías.</p>
         <div class="signatures">
-            <div class="signature"><c:out value="${firmantes.docenteNombre}"/><br><strong><c:out value="${firmantes.docenteCargo}"/></strong></div>
+            <div class="signature"><c:out value="${expediente.docente}"/><br><strong>Docente responsable</strong></div>
             <div class="signature"><c:out value="${firmantes.directorNombre}"/><br><strong><c:out value="${firmantes.directorCargo}"/></strong></div>
             <div class="signature"><c:out value="${firmantes.estadiasNombre}"/><br><strong><c:out value="${firmantes.estadiasCargo}"/></strong></div>
         </div>

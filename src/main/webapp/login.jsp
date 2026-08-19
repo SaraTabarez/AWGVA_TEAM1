@@ -6,6 +6,7 @@
   To change this template use File | Settings | File Templates.
 --%>
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -238,7 +239,7 @@
                         <label class="form-label-custom d-block">CORREO ELECTRÓNICO/MATRÍCULA:</label>
                         <div class="custom-input-group">
                             <i class="bi bi-envelope"></i>
-                            <input type="email" id="correoInput" name="correo" maxlength="160" placeholder="usuario@utez.edu.mx" pattern="[A-Za-z0-9._%+-]+@utez[.]edu[.]mx" title="Utiliza un correo institucional @utez.edu.mx" required>
+                            <input type="email" id="correoInput" name="correo" maxlength="160" value="<c:out value='${param.correo}'/>" placeholder="usuario@utez.edu.mx" pattern="[A-Za-z0-9._%+-]+@utez[.]edu[.]mx" title="Utiliza un correo institucional @utez.edu.mx" autocomplete="username" required>
                         </div>
                     </div>
 
@@ -247,7 +248,7 @@
                         <label class="form-label-custom d-block">CONTRASEÑA:</label>
                         <div class="custom-input-group">
                             <i class="bi bi-lock"></i>
-                            <input type="password" id="passwordInput" name="password" maxlength="200" placeholder="********" required>
+                            <input type="password" id="passwordInput" name="password" maxlength="200" placeholder="********" autocomplete="current-password" required>
                             <button class="btn-toggle-eye" type="button" id="togglePassword">
                                 <i class="bi bi-eye-slash" id="toggleIcon" style="margin-right: 0;"></i>
                             </button>

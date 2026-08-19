@@ -10,6 +10,9 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
     <link href="${ctx}/assets/css/role-home.css" rel="stylesheet">
+    <style>
+        .request-meta{display:grid;gap:7px;margin-top:14px;color:#68778a;font-size:.84rem}.request-meta span{display:flex;gap:8px;align-items:center}.request-status{display:inline-flex;align-items:center;gap:7px;margin-top:16px;border-radius:999px;background:#eef3f8;color:#1e3a5f;padding:7px 11px;font-size:.75rem;font-weight:800}.request-status i{color:#f38218}.empty-admin{background:#fff;border:1px solid #e1e7ef;border-radius:14px;padding:38px;text-align:center;color:#68778a}.empty-admin i{display:block;font-size:2.2rem;color:#f38218;margin-bottom:10px}
+    </style>
 </head>
 <body>
 <jsp:include page="/Layout/sidebar.jsp"/>
@@ -17,72 +20,33 @@
     <header class="role-header">
         <div>
             <div class="role-eyebrow">Administración del sistema</div>
-            <h1 class="role-title">Control general de AWGVA</h1>
-            <p class="role-subtitle">La cuenta ADMIN reúne las funciones de Docente, Director y Estadías, además de la administración de usuarios.</p>
+            <h1 class="role-title">Solicitudes en proceso</h1>
+            <p class="role-subtitle">Vista general de todas las solicitudes registradas en AWGVA y de la etapa en la que se encuentra cada una.</p>
         </div>
         <span class="role-badge">ADMIN</span>
     </header>
 
-    <section class="action-grid" aria-label="Acciones de Administración">
-        <a class="action-card" href="${ctx}/admin/usuarios/alta">
-            <span class="action-icon"><i class="bi bi-person-plus-fill"></i></span>
-            <h2>Altas de usuario</h2>
-            <p>Crea cuentas reales en Oracle para Docente, Director o Estadías.</p>
-        </a>
-        <a class="action-card" href="${ctx}/admin/usuarios">
-            <span class="action-icon"><i class="bi bi-person-x-fill"></i></span>
-            <h2>Eliminar usuarios</h2>
-            <p>Consulta las cuentas y elimina de la base de datos las que ya no deban acceder.</p>
-        </a>
-
-        <a class="action-card" href="${ctx}/nueva-solicitud">
-            <span class="action-icon"><i class="bi bi-plus-circle"></i></span>
-            <h2>Nueva solicitud</h2>
-            <p>Utiliza el flujo operativo de Docente para registrar una visita.</p>
-        </a>
-        <a class="action-card" href="${ctx}/mis-solicitudes">
-            <span class="action-icon"><i class="bi bi-file-earmark-text"></i></span>
-            <h2>Solicitudes de Docente</h2>
-            <p>Consulta solicitudes, documentos y avance de los trámites creados por ADMIN.</p>
-        </a>
-        <a class="action-card" href="${ctx}/reportes-docente">
-            <span class="action-icon"><i class="bi bi-cloud-arrow-up"></i></span>
-            <h2>Reportes de Docente</h2>
-            <p>Entrega reportes y evidencias con las mismas funciones del perfil Docente.</p>
-        </a>
-        <a class="action-card" href="${ctx}/historico-docente">
-            <span class="action-icon"><i class="bi bi-clock-history"></i></span>
-            <h2>Histórico de Docente</h2>
-            <p>Revisa las visitas concluidas vinculadas a la cuenta ADMIN.</p>
-        </a>
-
-        <a class="action-card" href="${ctx}/director/solicitudes">
-            <span class="action-icon"><i class="bi bi-clipboard-check"></i></span>
-            <h2>Solicitudes de Dirección</h2>
-            <p>Autoriza o rechaza solicitudes como lo hace el perfil Director.</p>
-        </a>
-        <a class="action-card" href="${ctx}/director/historico">
-            <span class="action-icon"><i class="bi bi-archive"></i></span>
-            <h2>Histórico de Dirección</h2>
-            <p>Consulta el historial de solicitudes revisadas por la división asignada.</p>
-        </a>
-
-        <a class="action-card" href="${ctx}/estadias/documentos">
-            <span class="action-icon"><i class="bi bi-folder-check"></i></span>
-            <h2>Gestión de archivos</h2>
-            <p>Revisa solicitudes, cartas responsivas, reportes y evidencias como Estadías.</p>
-        </a>
-        <a class="action-card" href="${ctx}/estadias/historico">
-            <span class="action-icon"><i class="bi bi-journal-check"></i></span>
-            <h2>Histórico de Estadías</h2>
-            <p>Consulta expedientes concluidos y su documentación.</p>
-        </a>
-    </section>
-
-    <div class="summary-strip">
-        <i class="bi bi-shield-check"></i>
-        <span>La cuenta ADMIN está protegida: no puede eliminarse desde el panel y el formulario no permite crear administradores adicionales.</span>
-    </div>
+    <c:choose>
+        <c:when test="${empty solicitudes}">
+            <div class="empty-admin"><i class="bi bi-inbox"></i><strong>No hay solicitudes activas.</strong><div>Las solicitudes finalizadas se encuentran en Histórico.</div></div>
+        </c:when>
+        <c:otherwise>
+            <section class="action-grid" aria-label="Solicitudes activas">
+                <c:forEach var="solicitud" items="${solicitudes}">
+                    <a class="action-card" href="${ctx}/admin/solicitud?ref=${solicitud.referenceToken}">
+                        <span class="action-icon"><i class="bi bi-file-earmark-text"></i></span>
+                        <h2>Solicitud #<c:out value="${solicitud.idVisita}"/> · <c:out value="${solicitud.empresa}"/></h2>
+                        <div class="request-meta">
+                            <span><i class="bi bi-person"></i><c:out value="${solicitud.docente}"/></span>
+                            <span><i class="bi bi-diagram-3"></i><c:out value="${solicitud.division}"/></span>
+                            <span><i class="bi bi-calendar3"></i><c:out value="${solicitud.fechaInicio}"/> a <c:out value="${solicitud.fechaFin}"/></span>
+                        </div>
+                        <span class="request-status"><i class="bi bi-hourglass-split"></i><c:out value="${solicitud.estadoLegible}"/></span>
+                    </a>
+                </c:forEach>
+            </section>
+        </c:otherwise>
+    </c:choose>
 </main>
 </body>
 </html>

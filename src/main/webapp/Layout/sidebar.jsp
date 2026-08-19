@@ -1,4 +1,4 @@
-ç<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 
@@ -93,24 +93,11 @@
                     </c:when>
 
                     <c:when test="${sessionScope.rol == 'ADMIN'}">
-                        <li class="menu-section">Administración</li>
+                        <li><a href="${ctx}/admin/solicitudes" class="nav-link-role ${fn:contains(currentPath, '/admin/solicitud') ? 'active' : ''}"><i class="bi bi-file-earmark-text"></i><span>Solicitudes</span></a></li>
+                        <li><a href="${ctx}/admin/reportes" class="nav-link-role ${fn:contains(currentPath, '/admin/reportes') ? 'active' : ''}"><i class="bi bi-clipboard2-check"></i><span>Reporte</span></a></li>
                         <li><a href="${ctx}/admin/usuarios" class="nav-link-role ${fn:contains(currentPath, '/admin/usuarios') ? 'active' : ''}"><i class="bi bi-people-fill"></i><span>Gestión de usuarios</span></a></li>
                         <li><a href="${ctx}/admin/firmantes" class="nav-link-role ${fn:contains(currentPath, '/admin/firmantes') ? 'active' : ''}"><i class="bi bi-pen-fill"></i><span>Firmantes</span></a></li>
-
-                        <li class="menu-section">Funciones de Docente</li>
-                        <li><a href="${ctx}/nueva-solicitud" class="nav-link-role ${fn:contains(currentPath, 'nueva-solicitud') ? 'active' : ''}"><i class="bi bi-plus-circle"></i><span>Nueva solicitud</span></a></li>
-                        <li><a href="${ctx}/mis-solicitudes" class="nav-link-role ${fn:contains(currentPath, 'mis-solicitudes') || fn:contains(currentPath, 'detalle-solicitud') ? 'active' : ''}"><i class="bi bi-file-earmark-text"></i><span>Mis solicitudes</span></a></li>
-                        <li><a href="${ctx}/reportes-docente" class="nav-link-role ${fn:contains(currentPath, 'reportes-docente') || fn:contains(currentPath, 'reporte-docente') ? 'active' : ''}"><i class="bi bi-cloud-arrow-up"></i><span>Reportes docente</span></a></li>
-                        <li><a href="${ctx}/historico-docente" class="nav-link-role ${fn:contains(currentPath, 'historico-docente') ? 'active' : ''}"><i class="bi bi-clock-history"></i><span>Histórico docente</span></a></li>
-
-                        <li class="menu-section">Funciones de Director</li>
-                        <li><a href="${ctx}/director/solicitudes" class="nav-link-role ${fn:contains(currentPath, '/director/solicitudes') || fn:contains(currentPath, '/director/detalle') ? 'active' : ''}"><i class="bi bi-clipboard-check"></i><span>Solicitudes Dirección</span></a></li>
-                        <li><a href="${ctx}/director/historico" class="nav-link-role ${fn:contains(currentPath, '/director/historico') ? 'active' : ''}"><i class="bi bi-clock-history"></i><span>Histórico Dirección</span></a></li>
-
-                        <li class="menu-section">Funciones de Estadías</li>
-                        <li><a href="${ctx}/estadias/documentos" class="nav-link-role ${fn:contains(currentPath, '/estadias/document') || fn:contains(currentPath, '/estadias/reporte') ? 'active' : ''}"><i class="bi bi-folder-check"></i><span>Gestión de archivos</span></a></li>
-                        <li><a href="${ctx}/estadias/historico" class="nav-link-role ${fn:contains(currentPath, '/estadias/historico') ? 'active' : ''}"><i class="bi bi-archive"></i><span>Histórico Estadías</span></a></li>
-                        <li><a href="${ctx}/cambiar-contrasena" class="nav-link-role ${fn:contains(currentPath, 'cambiar-contrasena') ? 'active' : ''}"><i class="bi bi-key"></i><span>Cambiar contraseña</span></a></li>
+                        <li><a href="${ctx}/admin/historico" class="nav-link-role ${fn:contains(currentPath, '/admin/historico') ? 'active' : ''}"><i class="bi bi-clock-history"></i><span>Histórico</span></a></li>
                     </c:when>
                 </c:choose>
             </ul>

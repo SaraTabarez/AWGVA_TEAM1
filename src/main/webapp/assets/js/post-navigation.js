@@ -12,7 +12,13 @@
         '/reportes-docente',
         '/historico-docente',
         '/reporte-docente',
-        '/cambiar-contrasena'
+        '/cambiar-contrasena',
+        '/admin/solicitudes',
+        '/admin/solicitud',
+        '/admin/reportes',
+        '/admin/usuarios',
+        '/admin/firmantes',
+        '/admin/historico'
     ]);
 
     function csrf() {
