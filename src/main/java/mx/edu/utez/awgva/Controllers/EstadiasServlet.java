@@ -11,12 +11,15 @@ import mx.edu.utez.awgva.Model.ExpedienteVisita;
 import mx.edu.utez.awgva.Model.Usuario;
 import mx.edu.utez.awgva.Service.DocumentoService;
 import mx.edu.utez.awgva.Service.VisitaService;
+import mx.edu.utez.awgva.Service.UsuarioService;
 import mx.edu.utez.awgva.Utils.EmailSender;
 import mx.edu.utez.awgva.Utils.RecordTokenUtil;
 import mx.edu.utez.awgva.Utils.TokenViewUtil;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 @WebServlet(name = "EstadiasServlet", urlPatterns = {
         "/estadias/documentos", "/estadias/documento", "/estadias/reporte",
@@ -27,6 +30,7 @@ import java.util.List;
 public class EstadiasServlet extends HttpServlet {
     private final DocumentoService documentoService = new DocumentoService();
     private final VisitaService visitaService = new VisitaService();
+    private final UsuarioService usuarioService = new UsuarioService();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -65,7 +69,7 @@ public class EstadiasServlet extends HttpServlet {
                 throw new IllegalArgumentException("No fue posible actualizar el documento.");
             }
             Documento actualizado = documentoService.buscarPorId(idDocumento);
-            notificar(actualizado, decision, request.getParameter("observaciones"));
+            notificar(actualizado, decision, request.getParameter("observaciones"), revisor);
             boolean reporte = "REPORTE".equalsIgnoreCase(actualizado.getTipoDocumento());
             boolean aceptar = "ACEPTAR".equalsIgnoreCase(decision);
             request.setAttribute("documento", actualizado);
@@ -184,19 +188,43 @@ public class EstadiasServlet extends HttpServlet {
                 "documento-revision", request.getParameter("ref"));
     }
 
-    private void notificar(Documento documento, String decision, String observaciones) {
-        if (documento == null) return;
+    private void notificar(Documento documento, String decision, String observaciones, Usuario revisor) {
+        if (documento == null || revisor == null) return;
         ExpedienteVisita expediente = visitaService.buscarParaEstadias(documento.getIdVisitaFk());
-        if (expediente == null || expediente.getCorreoDocente() == null) return;
+        if (expediente == null) return;
+
         boolean aceptado = "ACEPTAR".equalsIgnoreCase(decision);
+        String actor = revisor.getTipoRol().map(Enum::name).orElse("").equals("ADMIN")
+                ? "Administración" : "Estadías";
+        String motivo = observaciones == null || observaciones.isBlank()
+                ? "Sin observaciones adicionales." : observaciones.trim();
         String mensaje = aceptado
-                ? "Estadías aceptó tu " + documento.getTipoLegible() + ". Ya puedes continuar con la siguiente etapa."
-                : "Estadías rechazó tu " + documento.getTipoLegible()
-                + ". Puedes sustituir únicamente el archivo observado. Motivo: " + observaciones;
-        try {
-            EmailSender.sendMail(expediente.getCorreoDocente(), "Actualización de documentos AWGVA",
-                    "<html><body><p>" + html(mensaje) + "</p></body></html>");
-        } catch (RuntimeException ignored) { }
+                ? actor + " aceptó " + documento.getTipoLegible() + " de la solicitud #"
+                + documento.getIdVisitaFk() + ". El proceso puede continuar con la siguiente etapa."
+                : actor + " rechazó " + documento.getTipoLegible() + " de la solicitud #"
+                + documento.getIdVisitaFk() + ". Motivo del rechazo: " + motivo;
+
+        Set<String> destinatarios = new LinkedHashSet<>();
+        if (expediente.getCorreoDocente() != null && !expediente.getCorreoDocente().isBlank()) {
+            destinatarios.add(expediente.getCorreoDocente().trim());
+        }
+        destinatarios.addAll(usuarioService.findActiveEmailsByRoleAndDivision(
+                "DIRECTOR", expediente.getIdDivision()));
+
+        String cuerpo = "<html><body style=\"font-family:Arial,sans-serif;color:#1e3656\">"
+                + "<h2 style=\"color:#1f3b5f\">Actualización de solicitud AWGVA</h2>"
+                + "<p>" + html(mensaje) + "</p>"
+                + "<p><strong>Empresa:</strong> " + html(expediente.getEmpresa()) + "</p>"
+                + "<p><strong>Docente responsable:</strong> " + html(expediente.getDocente()) + "</p>"
+                + "</body></html>";
+
+        for (String correo : destinatarios) {
+            try {
+                EmailSender.sendMail(correo, "Actualización de documentos AWGVA", cuerpo);
+            } catch (RuntimeException exception) {
+                System.err.println("No fue posible notificar a " + correo + ": " + exception.getMessage());
+            }
+        }
     }
 
     private String html(String value) {

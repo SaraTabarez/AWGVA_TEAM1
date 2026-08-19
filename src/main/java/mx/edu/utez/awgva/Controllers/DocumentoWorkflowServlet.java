@@ -106,7 +106,8 @@ public class DocumentoWorkflowServlet extends HttpServlet {
     private void subirReporte(HttpServletRequest request, ExpedienteVisita expediente,
                               Long visitaId, List<Path> creados)
             throws IOException, ServletException {
-        if (!Set.of("OFICIO_GENERADO", "REPORTE_RECHAZADO").contains(estado(expediente))) {
+        if (!Set.of("CARTA_APROBADA_ESTADIAS", "OFICIO_GENERADO", "REPORTE_RECHAZADO")
+                .contains(estado(expediente))) {
             throw new IllegalArgumentException("El reporte no está habilitado en el estado actual.");
         }
         boolean existe = documentoService.buscarPorVisitaYTipo(visitaId, "REPORTE") != null;

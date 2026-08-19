@@ -11,6 +11,7 @@ import mx.edu.utez.awgva.Model.Usuario;
 import mx.edu.utez.awgva.Service.VisitaService;
 import mx.edu.utez.awgva.Utils.CsrfTokenUtil;
 import mx.edu.utez.awgva.Utils.PostNavigationResponse;
+import mx.edu.utez.awgva.Utils.RecordTokenUtil;
 
 import java.io.IOException;
 import java.util.Map;
@@ -74,6 +75,13 @@ public class InicioServlet extends HttpServlet {
         }
         if (role == TipoRol.DOCENTE) {
             request.setAttribute("totalSolicitudes", visitaService.contarDelDocente(usuario.getIdUsuario()));
+        } else if (role == TipoRol.ADMIN) {
+            var solicitudes = visitaService.listarTodasActivasAdmin();
+            for (var solicitud : solicitudes) {
+                solicitud.setReferenceToken(RecordTokenUtil.issue(session, usuario.getIdUsuario(),
+                        "admin-visita", solicitud.getIdVisita()));
+            }
+            request.setAttribute("solicitudes", solicitudes);
         }
         request.getRequestDispatcher(ROLE_VIEWS.get(role)).forward(request, response);
     }

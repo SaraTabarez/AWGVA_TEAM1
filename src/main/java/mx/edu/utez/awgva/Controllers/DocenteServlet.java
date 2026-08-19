@@ -267,12 +267,12 @@ public class DocenteServlet extends HttpServlet {
                 && !Set.of("SOLICITUD_APROBADA_ESTADIAS", "CARTA_RECHAZADA_ESTADIAS",
                 "CARTA_APROBADA_ESTADIAS", "OFICIO_GENERADO", "REPORTE_EN_REVISION",
                 "REPORTE_RECHAZADO", "COMPLETADA").contains(state)) {
-            throw new IllegalStateException("La carta responsiva se habilita cuando Estadías acepta la solicitud firmada.");
+            throw new IllegalStateException("La carta responsiva se habilita cuando Estadías o Administración acepta la solicitud firmada.");
         }
         if ("/oficio-autorizacion.jsp".equals(jsp)) {
             if (!Set.of("CARTA_APROBADA_ESTADIAS", "OFICIO_GENERADO", "REPORTE_EN_REVISION",
                     "REPORTE_RECHAZADO", "COMPLETADA").contains(state)) {
-                throw new IllegalStateException("El oficio se habilita cuando Estadías acepta la carta responsiva.");
+                throw new IllegalStateException("El oficio se habilita cuando Estadías o Administración acepta la carta responsiva.");
             }
             if ("CARTA_APROBADA_ESTADIAS".equals(state)
                     && !visitaService.marcarOficioGenerado(idVisita, usuario.getIdUsuario())) {
@@ -296,10 +296,10 @@ public class DocenteServlet extends HttpServlet {
         String state = expediente.getEstado() == null ? "" : expediente.getEstado().toUpperCase(Locale.ROOT);
         if ("SOLICITUD_VISITA".equals(tipo)
                 && !Set.of("ACEPTADA_DIRECTOR", "SOLICITUD_RECHAZADA_ESTADIAS").contains(state))
-            throw new IllegalStateException("La solicitud firmada sólo puede subirse después de la aprobación de Dirección o cuando Estadías solicita corregirla.");
+            throw new IllegalStateException("La solicitud firmada sólo puede subirse después de la aprobación de Dirección o cuando Estadías/Administración solicita corregirla.");
         if ("CARTA_RESPONSIVA".equals(tipo)
                 && !Set.of("SOLICITUD_APROBADA_ESTADIAS", "CARTA_RECHAZADA_ESTADIAS").contains(state))
-            throw new IllegalStateException("La carta responsiva sólo puede subirse cuando la solicitud firmada fue aceptada por Estadías.");
+            throw new IllegalStateException("La carta responsiva sólo puede subirse cuando la solicitud firmada fue aceptada por Estadías o Administración.");
         expediente.setReferenceToken(RecordTokenUtil.issue(request.getSession(), usuario.getIdUsuario(),
                 "docente-visita", idVisita));
         request.setAttribute("expediente", expediente);
@@ -317,8 +317,9 @@ public class DocenteServlet extends HttpServlet {
         Long idVisita = visitaId(request, usuario);
         ExpedienteVisita expediente = expedientePropio(idVisita, usuario);
         String state = expediente.getEstado() == null ? "" : expediente.getEstado().toUpperCase(Locale.ROOT);
-        if (!Set.of("OFICIO_GENERADO", "REPORTE_EN_REVISION", "REPORTE_RECHAZADO").contains(state))
-            throw new IllegalStateException("El reporte se habilita después de generar el oficio.");
+        if (!Set.of("CARTA_APROBADA_ESTADIAS", "OFICIO_GENERADO", "REPORTE_EN_REVISION",
+                "REPORTE_RECHAZADO").contains(state))
+            throw new IllegalStateException("El reporte se habilita cuando la carta responsiva fue aceptada.");
         expediente.setReferenceToken(RecordTokenUtil.issue(request.getSession(), usuario.getIdUsuario(),
                 "docente-visita", idVisita));
         expediente.setDocumentos(documentoService.listarEvidenciasReporte(idVisita));
@@ -351,7 +352,7 @@ public class DocenteServlet extends HttpServlet {
     private SolicitudVisita leerFormulario(HttpServletRequest request, Usuario usuario) {
         SolicitudVisita solicitud = new SolicitudVisita();
         solicitud.setSolicitanteNombre(usuario.getNombreCompleto());
-        solicitud.setSolicitanteCargo("DOCENTE");
+        solicitud.setSolicitanteCargo(usuario.getTipoRol().map(Enum::name).orElse("DOCENTE"));
         solicitud.setSolicitanteTelefono(texto(request, "solicitanteTelefono", 30, null));
         solicitud.setDocentesAcompanantes(String.valueOf(entero(request, "docentesAcompanantes", 0, 3,
                 "El número de docentes acompañantes debe estar entre 0 y 3.")));
@@ -452,7 +453,7 @@ public class DocenteServlet extends HttpServlet {
 
         SolicitudVisita solicitud = new SolicitudVisita();
         solicitud.setSolicitanteNombre(expediente.getDocente());
-        solicitud.setSolicitanteCargo("DOCENTE");
+        solicitud.setSolicitanteCargo(usuario.getTipoRol().map(Enum::name).orElse("DOCENTE"));
         solicitud.setSolicitanteTelefono("");
         solicitud.setDocentesAcompanantes(valor(expediente.getDocenteAcompanante(), "0"));
         solicitud.setEmpresaNombre(expediente.getEmpresa());

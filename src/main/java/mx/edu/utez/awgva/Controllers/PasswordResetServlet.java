@@ -86,7 +86,13 @@ public class PasswordResetServlet extends HttpServlet {
         if (result == UsuarioService.PasswordResetRequest.ACCOUNT_NOT_FOUND) {
             clear(session);
             show(request, response, "no-existe",
-                    "El correo no está registrado o la cuenta está desactivada. Comunícate con Administración para que den de alta o reactiven tu cuenta.", null);
+                    "El correo que estás usando NO EXISTE en el sistema. Verifica que esté escrito correctamente o comunícate con Administración.", null);
+            return;
+        }
+        if (result == UsuarioService.PasswordResetRequest.ACCOUNT_INACTIVE) {
+            clear(session);
+            show(request, response, "no-existe",
+                    "La cuenta existe, pero está INACTIVA. Comunícate con Administración para que la reactiven antes de recuperar la contraseña.", null);
             return;
         }
         if (result == UsuarioService.PasswordResetRequest.INVALID_EMAIL) {
