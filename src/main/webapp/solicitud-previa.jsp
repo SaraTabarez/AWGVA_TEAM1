@@ -161,7 +161,7 @@
 
   <div class="signatures">
     <div><strong>Solicita</strong>
-      <div class="line"><c:out value="${firmantes.docenteNombre}"/><br><c:out value="${firmantes.docenteCargo}"/></div>
+      <div class="line"><c:out value="${solicitud.solicitanteNombre}"/><br><c:out value="${solicitud.solicitanteCargo}"/></div>
     </div>
     <div>
       <strong>Autoriza</strong>

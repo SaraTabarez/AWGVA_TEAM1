@@ -337,7 +337,7 @@
                         <c:otherwise><span class="action disabled"><i class="bi bi-lock"></i> Carta sin firmas</span></c:otherwise>
                     </c:choose>
                     <c:choose>
-                        <c:when test="${expediente.estado == 'OFICIO_GENERADO' or expediente.estado == 'REPORTE_EN_REVISION' or expediente.estado == 'REPORTE_RECHAZADO'}">
+                        <c:when test="${expediente.estado == 'CARTA_APROBADA_ESTADIAS' or expediente.estado == 'OFICIO_GENERADO' or expediente.estado == 'REPORTE_EN_REVISION' or expediente.estado == 'REPORTE_RECHAZADO'}">
                             <button class="action blue" type="button" data-post-url="${ctx}/reporte-docente" data-post-ref="<c:out value='${expediente.referenceToken}'/>"><i class="bi bi-images"></i> Reporte</button>
                         </c:when>
                         <c:otherwise><span class="action disabled"><i class="bi bi-lock"></i> Reporte</span></c:otherwise>
@@ -377,8 +377,3 @@
 </main>
 </body>
 </html>
-
-
-
-
-
