@@ -1,6 +1,9 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <c:set var="ctx" value="${pageContext.request.contextPath}"/>
+<c:set var="esAdmin" value="${sessionScope.rol == 'ADMIN'}"/>
+<c:set var="volverPath" value="${esAdmin ? '/admin/solicitudes' : '/estadias/documentos'}"/>
+<c:set var="volverTexto" value="${esAdmin ? 'Volver a Gestión de solicitudes' : 'Volver a Gestión de archivos'}"/>
 <!doctype html>
 <html lang="es">
 <head>
@@ -19,7 +22,7 @@
         </div>
         <h1>Documento rechazado</h1>
         <p>La <strong><c:out value="${documento.tipoLegible}"/></strong> fue rechazada. El docente recibió las observaciones y podrá sustituir únicamente ese archivo.</p>
-        <button type="button" class="workflow-btn orange" data-post-url="${ctx}/estadias/documentos">Volver a Gestión de archivos</button>
+        <a class="workflow-btn orange" href="${ctx}${volverPath}"><c:out value="${volverTexto}"/></a>
     </div>
 </main>
 </body>
