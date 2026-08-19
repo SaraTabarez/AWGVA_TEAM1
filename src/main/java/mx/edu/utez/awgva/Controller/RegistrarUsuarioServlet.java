@@ -45,7 +45,7 @@ public class RegistrarUsuarioServlet extends HttpServlet {
                 throw new IllegalArgumentException("No fue posible guardar el usuario.");
             }
             request.getSession().setAttribute("adminUsersMessage", "Usuario creado correctamente.");
-            request.getRequestDispatcher("/admin/usuarios").forward(request, response);
+            response.sendRedirect(request.getContextPath() + "/admin/usuarios");
         } catch (IllegalArgumentException exception) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             request.setAttribute("error", exception.getMessage());

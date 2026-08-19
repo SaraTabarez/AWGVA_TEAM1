@@ -25,8 +25,8 @@ public class GestionUsuariosServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
-            throws IOException {
-        response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
+            throws ServletException, IOException {
+        show(request, response);
     }
 
     @Override
@@ -54,4 +54,3 @@ public class GestionUsuariosServlet extends HttpServlet {
         request.getRequestDispatcher("/WEB-INF/views/admin/bajas-usuario.jsp").forward(request, response);
     }
 }
-

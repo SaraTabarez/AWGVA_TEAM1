@@ -7,17 +7,19 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import mx.edu.utez.awgva.Model.FirmantesOficiales;
 import mx.edu.utez.awgva.Service.FirmanteService;
+import mx.edu.utez.awgva.Service.UsuarioService;
 
 import java.io.IOException;
 
 @WebServlet("/admin/firmantes")
 public class FirmantesServlet extends HttpServlet {
     private final FirmanteService service = new FirmanteService();
+    private final UsuarioService usuarioService = new UsuarioService();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
-            throws IOException {
-        response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
+            throws ServletException, IOException {
+        show(request, response);
     }
 
     @Override
@@ -44,6 +46,7 @@ public class FirmantesServlet extends HttpServlet {
     private void show(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         request.setAttribute("firmantes", service.load());
+        request.setAttribute("docentes", usuarioService.findActiveByRole("DOCENTE"));
         request.getRequestDispatcher("/WEB-INF/views/admin/firmantes.jsp").forward(request, response);
     }
 }
