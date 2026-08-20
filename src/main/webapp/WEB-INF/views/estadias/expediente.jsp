@@ -74,6 +74,36 @@
             </div>
         </c:if>
     </div>
+
+    <section class="workflow-card" style="margin-top:18px">
+        <h3 style="margin-bottom:14px">Evidencias del reporte</h3>
+        <c:choose>
+            <c:when test="${not empty evidencias}">
+                <div class="row g-3">
+                    <c:forEach var="evidencia" items="${evidencias}">
+                        <div class="col-12 col-md-4">
+                            <div style="border:1px solid #d7dee7;border-radius:8px;overflow:hidden;height:100%">
+                                <img data-private-image="<c:out value='${evidencia.fileToken}'/>"
+                                     alt="<c:out value='${evidencia.tipoLegible}'/>"
+                                     style="width:100%;height:210px;object-fit:cover;background:#eef3f8">
+                                <div style="padding:12px">
+                                    <strong><c:out value="${evidencia.tipoLegible}"/></strong><br>
+                                    <small><c:out value="${evidencia.nombreArchivo}"/></small>
+                                    <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+                                        <button type="button" class="workflow-btn navy" data-private-file="<c:out value='${evidencia.fileToken}'/>"><i class="bi bi-eye"></i> Abrir</button>
+                                        <button type="button" class="workflow-btn light" data-private-file="<c:out value='${evidencia.fileToken}'/>" data-download><i class="bi bi-download"></i> Descargar</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </c:forEach>
+                </div>
+            </c:when>
+            <c:otherwise>
+                <div class="detail-value">No hay evidencias fotográficas disponibles para este expediente.</div>
+            </c:otherwise>
+        </c:choose>
+    </section>
 </main>
 </body>
 </html>

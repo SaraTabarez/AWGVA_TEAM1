@@ -25,7 +25,6 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -42,7 +41,6 @@ import java.util.Set;
 public class DocenteServlet extends HttpServlet {
     private static final String BORRADOR_SOLICITUD = "borradorSolicitud";
     private static final String DATOS_POR_VISITA = "datosSolicitudPorVisita";
-    private static final String CARTAS_DESCARGADAS = "cartasResponsivasDescargadas";
 
     private final VisitaService visitaService = new VisitaService();
     private final DocumentoService documentoService = new DocumentoService();
@@ -207,7 +205,7 @@ public class DocenteServlet extends HttpServlet {
         visita.setPropositoVisita(solicitud.getObjetivo());
         visita.setFechaInicioVisita(inicio);
         visita.setFechaFinVisita(fin);
-        visita.setEstado("PENDIENTE_DIRECTOR");
+        visita.setEstado("SOLICITUD_CREADA");
 
         Empresa empresa = new Empresa(solicitud.getEmpresaNombre(), solicitud.getEmpresaDireccion(),
                 solicitud.getEmpresaTelefono(), solicitud.getEmpresaEmail());
@@ -245,8 +243,12 @@ public class DocenteServlet extends HttpServlet {
         TokenViewUtil.decorateDocuments(request, usuario, expediente.getDocumentos());
         TokenViewUtil.decorateDocument(request, usuario, solicitudFirmada);
         TokenViewUtil.decorateDocument(request, usuario, cartaFirmada);
-        boolean cartaDescargada = cartasDescargadas(request.getSession()).contains(idVisita)
-                || cartaFirmada != null;
+        String estadoActual = expediente.getEstado() == null
+                ? "" : expediente.getEstado().trim().toUpperCase(Locale.ROOT);
+        boolean cartaDescargada = cartaFirmada != null || Set.of(
+                "CARTA_DESCARGADA", "CARTA_EN_REVISION", "CARTA_APROBADA_ESTADIAS",
+                "OFICIO_GENERADO", "REPORTE_EN_REVISION", "REPORTE_RECHAZADO", "COMPLETADA"
+        ).contains(estadoActual);
 
         request.setAttribute("expediente", expediente);
         expediente.setReferenceToken(RecordTokenUtil.issue(request.getSession(), usuario.getIdUsuario(),
@@ -264,15 +266,15 @@ public class DocenteServlet extends HttpServlet {
         ExpedienteVisita expediente = expedientePropio(idVisita, usuario);
         String state = expediente.getEstado() == null ? "" : expediente.getEstado().toUpperCase(Locale.ROOT);
         if ("/cartaResponsiva.jsp".equals(jsp)
-                && !Set.of("SOLICITUD_APROBADA_ESTADIAS", "CARTA_RECHAZADA_ESTADIAS",
-                "CARTA_APROBADA_ESTADIAS", "OFICIO_GENERADO", "REPORTE_EN_REVISION",
-                "REPORTE_RECHAZADO", "COMPLETADA").contains(state)) {
-            throw new IllegalStateException("La carta responsiva se habilita cuando Estadías o Administración acepta la solicitud firmada.");
+                && !Set.of("SOLICITUD_APROBADA_ESTADIAS", "CARTA_DESCARGADA", "CARTA_EN_REVISION",
+                "CARTA_RECHAZADA_ESTADIAS", "CARTA_APROBADA_ESTADIAS", "OFICIO_GENERADO",
+                "REPORTE_EN_REVISION", "REPORTE_RECHAZADO", "COMPLETADA").contains(state)) {
+            throw new IllegalStateException("La carta responsiva se habilita cuando el departamento correspondiente acepta la solicitud firmada.");
         }
         if ("/oficio-autorizacion.jsp".equals(jsp)) {
             if (!Set.of("CARTA_APROBADA_ESTADIAS", "OFICIO_GENERADO", "REPORTE_EN_REVISION",
                     "REPORTE_RECHAZADO", "COMPLETADA").contains(state)) {
-                throw new IllegalStateException("El oficio se habilita cuando Estadías o Administración acepta la carta responsiva.");
+                throw new IllegalStateException("El oficio se habilita cuando el departamento correspondiente acepta la carta responsiva.");
             }
             if ("CARTA_APROBADA_ESTADIAS".equals(state)
                     && !visitaService.marcarOficioGenerado(idVisita, usuario.getIdUsuario())) {
@@ -295,11 +297,14 @@ public class DocenteServlet extends HttpServlet {
         ExpedienteVisita expediente = expedientePropio(idVisita, usuario);
         String state = expediente.getEstado() == null ? "" : expediente.getEstado().toUpperCase(Locale.ROOT);
         if ("SOLICITUD_VISITA".equals(tipo)
-                && !Set.of("ACEPTADA_DIRECTOR", "SOLICITUD_RECHAZADA_ESTADIAS").contains(state))
-            throw new IllegalStateException("La solicitud firmada sólo puede subirse después de la aprobación de Dirección o cuando Estadías/Administración solicita corregirla.");
+                && !Set.of("SOLICITUD_DESCARGADA", "SOLICITUD_RECHAZADA_ESTADIAS",
+                "ACEPTADA_DIRECTOR").contains(state))
+            throw new IllegalStateException(
+                    "Primero descarga la solicitud sin firmas; después podrás subirla firmada.");
         if ("CARTA_RESPONSIVA".equals(tipo)
-                && !Set.of("SOLICITUD_APROBADA_ESTADIAS", "CARTA_RECHAZADA_ESTADIAS").contains(state))
-            throw new IllegalStateException("La carta responsiva sólo puede subirse cuando la solicitud firmada fue aceptada por Estadías o Administración.");
+                && !Set.of("CARTA_DESCARGADA", "CARTA_RECHAZADA_ESTADIAS").contains(state))
+            throw new IllegalStateException(
+                    "Primero descarga la carta responsiva; después podrás subirla firmada.");
         expediente.setReferenceToken(RecordTokenUtil.issue(request.getSession(), usuario.getIdUsuario(),
                 "docente-visita", idVisita));
         request.setAttribute("expediente", expediente);
@@ -341,10 +346,18 @@ public class DocenteServlet extends HttpServlet {
         Long idVisita = visitaId(request, usuario);
         expedientePropio(idVisita, usuario);
         String tipo = request.getParameter("tipo");
-        if ("CARTA_RESPONSIVA".equals(tipo)) {
-            cartasDescargadas(request.getSession()).add(idVisita);
-        } else if (!"SOLICITUD_VISITA".equals(tipo)) {
+
+        boolean registrado;
+        if ("SOLICITUD_VISITA".equals(tipo)) {
+            registrado = visitaService.marcarSolicitudDescargada(idVisita, usuario.getIdUsuario());
+        } else if ("CARTA_RESPONSIVA".equals(tipo)) {
+            registrado = visitaService.marcarCartaDescargada(idVisita, usuario.getIdUsuario());
+        } else {
             throw new IllegalArgumentException("Tipo de descarga no válido.");
+        }
+
+        if (!registrado) {
+            throw new IllegalStateException("No fue posible registrar la descarga del documento.");
         }
         response.setStatus(HttpServletResponse.SC_NO_CONTENT);
     }
@@ -515,15 +528,6 @@ public class DocenteServlet extends HttpServlet {
 
     private void guardarDatosSolicitud(HttpSession session, Long idVisita, SolicitudVisita solicitud) {
         datosPorVisita(session).put(idVisita, solicitud);
-    }
-
-    @SuppressWarnings("unchecked")
-    private Set<Long> cartasDescargadas(HttpSession session) {
-        Object existente = session.getAttribute(CARTAS_DESCARGADAS);
-        if (existente instanceof Set<?>) return (Set<Long>) existente;
-        Set<Long> ids = new HashSet<>();
-        session.setAttribute(CARTAS_DESCARGADAS, ids);
-        return ids;
     }
 
     private Usuario usuario(HttpServletRequest request) {

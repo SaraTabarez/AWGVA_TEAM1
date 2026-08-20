@@ -56,7 +56,7 @@ public class VisitaDao {
                 Long idEmpresa = insertarOBuscarEmpresa(connection, empresa);
                 visita.setIdEmpresaFk(idEmpresa);
                 if (visita.getEstado() == null || visita.getEstado().isBlank()) {
-                    visita.setEstado("PENDIENTE_DIRECTOR");
+                    visita.setEstado("SOLICITUD_CREADA");
                 }
 
                 Long idVisita = insertarVisita(connection, visita);
@@ -162,6 +162,8 @@ public class VisitaDao {
 
         if (soloHistorico) {
             sql.append("AND UPPER(v.ESTADO) = 'COMPLETADA' ");
+        } else {
+            sql.append("AND UPPER(v.ESTADO) <> 'COMPLETADA' ");
         }
         if (busqueda != null && !busqueda.isBlank()) {
             sql.append("AND (TO_CHAR(v.ID_VISITA) LIKE ? OR UPPER(e.NOMBRE_EMPRESA) LIKE ? "
@@ -203,19 +205,45 @@ public class VisitaDao {
                 });
     }
 
-    public boolean revisarComoDirector(Long idVisita, Long idDivision, String estado, String motivo) {
-        String sql = "UPDATE VISITA SET ESTADO = ?, MOTIVO_RECHAZO = ?, "
-                + "ACTUALIZADO_EN = CURRENT_TIMESTAMP WHERE ID_VISITA = ? AND ID_DIVISION_FK = ? "
-                + "AND UPPER(ESTADO) IN ('PENDIENTE','PENDIENTE_DIRECTOR')";
+    /**
+     * Registra que el docente inició la descarga/impresión de la solicitud sin firmas.
+     * El UPDATE también permite volver a descargar sin hacer retroceder un expediente
+     * que ya avanzó a otra etapa.
+     */
+    public boolean marcarSolicitudDescargada(Long idVisita, Long idUsuario) {
+        String sql = "UPDATE VISITA SET "
+                + "ESTADO = CASE WHEN UPPER(ESTADO) IN ('PENDIENTE','PENDIENTE_DIRECTOR','SOLICITUD_CREADA') "
+                + "THEN 'SOLICITUD_DESCARGADA' ELSE ESTADO END, "
+                + "ACTUALIZADO_EN = CURRENT_TIMESTAMP "
+                + "WHERE ID_VISITA = ? AND ID_USUARIO_FK = ?";
         try (Connection connection = DatabaseConnection.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setString(1, estado);
-            statement.setString(2, motivo);
-            statement.setLong(3, idVisita);
-            statement.setLong(4, idDivision);
+            statement.setLong(1, idVisita);
+            statement.setLong(2, idUsuario);
             return statement.executeUpdate() == 1;
         } catch (SQLException exception) {
-            System.err.println("No fue posible revisar la solicitud: " + exception.getMessage());
+            System.err.println("No fue posible registrar la descarga de la solicitud: " + exception.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Registra que el docente descargó la Carta responsiva. Sólo cambia de etapa
+     * cuando la solicitud firmada ya fue aceptada o la carta requiere corrección.
+     */
+    public boolean marcarCartaDescargada(Long idVisita, Long idUsuario) {
+        String sql = "UPDATE VISITA SET "
+                + "ESTADO = CASE WHEN UPPER(ESTADO) IN ('SOLICITUD_APROBADA_ESTADIAS','CARTA_RECHAZADA_ESTADIAS') "
+                + "THEN 'CARTA_DESCARGADA' ELSE ESTADO END, "
+                + "ACTUALIZADO_EN = CURRENT_TIMESTAMP "
+                + "WHERE ID_VISITA = ? AND ID_USUARIO_FK = ?";
+        try (Connection connection = DatabaseConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setLong(1, idVisita);
+            statement.setLong(2, idUsuario);
+            return statement.executeUpdate() == 1;
+        } catch (SQLException exception) {
+            System.err.println("No fue posible registrar la descarga de la carta responsiva: " + exception.getMessage());
             return false;
         }
     }
@@ -235,11 +263,11 @@ public class VisitaDao {
         }
     }
 
-    /** Histórico total de Estadías: toda visita que haya entregado algún documento. */
+    /** Histórico de Estadías: únicamente visitas finalizadas cuyo reporte fue aceptado. */
     public List<ExpedienteVisita> listarHistoricoEstadias(String busqueda) {
         StringBuilder sql = new StringBuilder(BASE_SELECT)
-                .append("WHERE EXISTS (SELECT 1 FROM DOCUMENTO doc WHERE doc.ID_VISITA_FK = v.ID_VISITA ")
-                .append("AND UPPER(doc.TIPO_DOCUMENTO) IN ('SOLICITUD_VISITA','CARTA_RESPONSIVA','REPORTE')) ");
+                .append("WHERE UPPER(v.ESTADO) = 'COMPLETADA' ")
+                .append("AND UPPER(rep.ESTADO_REPORTE) = 'ACEPTADO' ");
         List<Object> parametros = new ArrayList<>();
         if (busqueda != null && !busqueda.isBlank()) {
             sql.append("AND (TO_CHAR(v.ID_VISITA) LIKE ? OR UPPER(e.NOMBRE_EMPRESA) LIKE ? "
@@ -250,7 +278,7 @@ public class VisitaDao {
             parametros.add(patron);
             parametros.add(patron);
         }
-        sql.append("ORDER BY v.CREADO_EN DESC");
+        sql.append("ORDER BY v.FECHA_FIN_VISITA DESC, v.CREADO_EN DESC");
         return consultarLista(sql.toString(), statement -> bind(statement, parametros));
     }
 
@@ -428,9 +456,10 @@ public class VisitaDao {
 
     private String normalizarEstado(String estado) {
         return switch (estado.trim().toUpperCase()) {
-            case "PENDIENTE" -> "PENDIENTE_DIRECTOR";
-            case "ACEPTADA" -> "ACEPTADA_DIRECTOR";
-            case "RECHAZADA" -> "RECHAZADA_DIRECTOR";
+            case "PENDIENTE" -> "SOLICITUD_CREADA";
+            case "ENVIADA" -> "SOLICITUD_EN_REVISION";
+            case "ACEPTADA" -> "SOLICITUD_APROBADA_ESTADIAS";
+            case "RECHAZADA" -> "SOLICITUD_RECHAZADA_ESTADIAS";
             default -> estado.trim().toUpperCase();
         };
     }

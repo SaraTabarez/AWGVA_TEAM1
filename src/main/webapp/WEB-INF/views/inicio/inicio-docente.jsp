@@ -24,7 +24,15 @@
         <a class="action-card" href="${ctx}/reportes-docente"><span class="action-icon"><i class="bi bi-cloud-arrow-up"></i></span><h2>Entregar reporte</h2><p>Adjunta el reporte y la evidencia de la visita.</p></a>
         <a class="action-card" href="${ctx}/historico-docente"><span class="action-icon"><i class="bi bi-clock-history"></i></span><h2>Histórico</h2><p>Revisa visitas y trámites concluidos previamente.</p></a>
     </section>
-    <div class="summary-strip"><i class="bi bi-info-circle"></i><span>Tienes <strong><c:out value="${totalSolicitudes}"/></strong> solicitudes registradas.</span></div>
+    <div class="summary-strip">
+        <i class="bi bi-info-circle"></i>
+        <span>
+            Tienes <strong><c:out value="${totalSolicitudes}"/></strong> solicitudes registradas:
+            <strong><c:out value="${solicitudesActivas}"/></strong> en Solicitudes,
+            <strong><c:out value="${reportesActivos}"/></strong> en Reportes y
+            <strong><c:out value="${historicoTotal}"/></strong> en Histórico.
+        </span>
+    </div>
 </main>
 </body>
 </html>

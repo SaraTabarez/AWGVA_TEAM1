@@ -51,6 +51,8 @@ public class DocumentoDao {
         try (Connection connection = DatabaseConnection.getConnection()) {
             connection.setAutoCommit(false);
             try {
+                boolean contieneSolicitud = false;
+                boolean contieneCarta = false;
                 boolean contieneReporte = false;
                 Long visitaId = documentos.get(0).getIdVisitaFk();
                 for (Documento documento : documentos) {
@@ -58,9 +60,19 @@ public class DocumentoDao {
                         throw new SQLException("Todos los documentos deben pertenecer a la misma visita.");
                     }
                     ejecutarMerge(connection, documento);
+                    if ("SOLICITUD_VISITA".equalsIgnoreCase(documento.getTipoDocumento())) contieneSolicitud = true;
+                    if ("CARTA_RESPONSIVA".equalsIgnoreCase(documento.getTipoDocumento())) contieneCarta = true;
                     if ("REPORTE".equalsIgnoreCase(documento.getTipoDocumento())) contieneReporte = true;
                 }
-                if (contieneReporte) actualizarEstadoVisita(connection, visitaId, "REPORTE_EN_REVISION");
+
+                if (contieneReporte) {
+                    actualizarEstadoVisita(connection, visitaId, "REPORTE_EN_REVISION");
+                } else if (contieneCarta) {
+                    actualizarEstadoVisita(connection, visitaId, "CARTA_EN_REVISION");
+                } else if (contieneSolicitud) {
+                    actualizarEstadoVisita(connection, visitaId, "SOLICITUD_EN_REVISION");
+                }
+
                 connection.commit();
                 return true;
             } catch (SQLException exception) {
@@ -93,7 +105,8 @@ public class DocumentoDao {
     /** Bandeja de Estadías: únicamente solicitud, carta y reporte. */
     public List<Documento> listarParaEstadias(String busqueda, String tipo) {
         StringBuilder sql = new StringBuilder("SELECT ").append(SELECT_COLUMNS).append(JOINS)
-                .append("WHERE UPPER(d.TIPO_DOCUMENTO) IN ('SOLICITUD_VISITA','CARTA_RESPONSIVA','REPORTE') ");
+                .append("WHERE UPPER(d.TIPO_DOCUMENTO) IN ('SOLICITUD_VISITA','CARTA_RESPONSIVA','REPORTE') ")
+                .append("AND UPPER(v.ESTADO) <> 'COMPLETADA' ");
         List<Object> parametros = new ArrayList<>();
         if (tipo != null && !tipo.isBlank()) {
             sql.append("AND UPPER(d.TIPO_DOCUMENTO) = ? ");
@@ -110,7 +123,9 @@ public class DocumentoDao {
             parametros.add(patron);
             parametros.add(patron);
         }
-        sql.append("ORDER BY d.SUBIDO_EN DESC");
+        sql.append("ORDER BY CASE UPPER(d.ESTADO) "
+                + "WHEN 'PENDIENTE' THEN 0 WHEN 'RECHAZADO' THEN 1 ELSE 2 END, "
+                + "d.SUBIDO_EN DESC");
         return consultarLista(sql.toString(), statement -> bind(statement, parametros));
     }
 
