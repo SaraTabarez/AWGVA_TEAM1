@@ -17,6 +17,23 @@ import java.util.ArrayList;
 import java.util.List;
 
 /** Consultas de visitas. Los límites por propietario/división se aplican en SQL. */
+import mx.edu.utez.awgva.Model.Empresa;
+import mx.edu.utez.awgva.Model.ExpedienteVisita;
+import mx.edu.utez.awgva.Model.GrupoVisita;
+import mx.edu.utez.awgva.Model.Visita;
+import mx.edu.utez.awgva.Utils.DatabaseConnection;
+
+import java.sql.Connection;
+import java.sql.Date;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+
+/** Consultas de visitas. Los límites por propietario/división se aplican en SQL. */
 public class VisitaDao {
 
     private static final String BASE_SELECT = "SELECT "
@@ -150,6 +167,45 @@ public class VisitaDao {
             System.err.println("No fue posible contar las visitas: " + exception.getMessage());
             return 0;
         }
+    }
+
+    /**
+     * Resumen del inicio del Docente en una sola consulta. Antes el Inicio cargaba
+     * tres listas completas (con JOIN/LISTAGG) únicamente para obtener sus tamaños.
+     * El arreglo devuelto contiene: solicitudes, reportes, histórico.
+     */
+    public int[] contarResumenDocente(Long idUsuario) {
+        String sql = "SELECT "
+                + "SUM(CASE WHEN UPPER(v.ESTADO) NOT IN "
+                + "('REPORTE_EN_REVISION','REPORTE_RECHAZADO','COMPLETADA') THEN 1 ELSE 0 END) AS SOLICITUDES, "
+                + "SUM(CASE WHEN UPPER(v.ESTADO) <> 'COMPLETADA' "
+                + "AND (rep.ESTADO_REPORTE IS NOT NULL OR UPPER(v.ESTADO) IN "
+                + "('REPORTE_EN_REVISION','REPORTE_RECHAZADO')) THEN 1 ELSE 0 END) AS REPORTES, "
+                + "SUM(CASE WHEN UPPER(v.ESTADO) = 'COMPLETADA' "
+                + "AND UPPER(rep.ESTADO_REPORTE) = 'ACEPTADO' THEN 1 ELSE 0 END) AS HISTORICO "
+                + "FROM VISITA v "
+                + "LEFT JOIN (SELECT ID_VISITA_FK, "
+                + "MAX(ESTADO) KEEP (DENSE_RANK LAST ORDER BY SUBIDO_EN) AS ESTADO_REPORTE "
+                + "FROM DOCUMENTO WHERE UPPER(TIPO_DOCUMENTO) = 'REPORTE' "
+                + "GROUP BY ID_VISITA_FK) rep ON rep.ID_VISITA_FK = v.ID_VISITA "
+                + "WHERE v.ID_USUARIO_FK = ?";
+
+        try (Connection connection = DatabaseConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setLong(1, idUsuario);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    return new int[]{
+                            resultSet.getInt("SOLICITUDES"),
+                            resultSet.getInt("REPORTES"),
+                            resultSet.getInt("HISTORICO")
+                    };
+                }
+            }
+        } catch (SQLException exception) {
+            System.err.println("No fue posible cargar el resumen del docente: " + exception.getMessage());
+        }
+        return new int[]{0, 0, 0};
     }
 
     public List<ExpedienteVisita> listarParaDirector(
