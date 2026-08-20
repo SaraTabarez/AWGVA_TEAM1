@@ -236,13 +236,14 @@ public class DocenteServlet extends HttpServlet {
             throws ServletException, IOException {
         Long idVisita = visitaId(request, usuario);
         ExpedienteVisita expediente = expedientePropio(idVisita, usuario);
-        expediente.setDocumentos(documentoService.listarPorVisita(idVisita));
+        List<Documento> documentos = documentoService.listarPorVisita(idVisita);
+        expediente.setDocumentos(documentos);
 
-        Documento solicitudFirmada = documentoService.buscarPorVisitaYTipo(idVisita, "SOLICITUD_VISITA");
-        Documento cartaFirmada = documentoService.buscarPorVisitaYTipo(idVisita, "CARTA_RESPONSIVA");
-        TokenViewUtil.decorateDocuments(request, usuario, expediente.getDocumentos());
-        TokenViewUtil.decorateDocument(request, usuario, solicitudFirmada);
-        TokenViewUtil.decorateDocument(request, usuario, cartaFirmada);
+        // listarPorVisita ya trae solicitud, carta y reporte. Reutilizamos esa lista
+        // para no abrir dos consultas Oracle adicionales en cada entrada al detalle.
+        Documento solicitudFirmada = documentoPorTipo(documentos, "SOLICITUD_VISITA");
+        Documento cartaFirmada = documentoPorTipo(documentos, "CARTA_RESPONSIVA");
+        TokenViewUtil.decorateDocuments(request, usuario, documentos);
         String estadoActual = expediente.getEstado() == null
                 ? "" : expediente.getEstado().trim().toUpperCase(Locale.ROOT);
         boolean cartaDescargada = cartaFirmada != null || Set.of(
@@ -450,6 +451,16 @@ public class DocenteServlet extends HttpServlet {
             result.add(item);
         }
         return result;
+    }
+
+    private Documento documentoPorTipo(List<Documento> documentos, String tipo) {
+        if (documentos == null || tipo == null) return null;
+        for (Documento documento : documentos) {
+            if (documento != null && tipo.equalsIgnoreCase(documento.getTipoDocumento())) {
+                return documento;
+            }
+        }
+        return null;
     }
 
     private ExpedienteVisita expedientePropio(Long idVisita, Usuario usuario) {

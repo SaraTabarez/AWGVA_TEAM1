@@ -58,13 +58,14 @@ public class InicioServlet extends HttpServlet {
             return;
         }
         if (role == TipoRol.DOCENTE) {
-            var solicitudes = visitaService.listarSolicitudesActivasDocente(usuario.getIdUsuario());
-            var reportes = visitaService.listarReportesDelDocente(usuario.getIdUsuario());
-            var historico = visitaService.listarHistoricoDocente(usuario.getIdUsuario());
-            request.setAttribute("totalSolicitudes", solicitudes.size() + reportes.size() + historico.size());
-            request.setAttribute("solicitudesActivas", solicitudes.size());
-            request.setAttribute("reportesActivos", reportes.size());
-            request.setAttribute("historicoTotal", historico.size());
+            int[] resumen = visitaService.contarResumenDocente(usuario.getIdUsuario());
+            int solicitudes = resumen[0];
+            int reportes = resumen[1];
+            int historico = resumen[2];
+            request.setAttribute("totalSolicitudes", solicitudes + reportes + historico);
+            request.setAttribute("solicitudesActivas", solicitudes);
+            request.setAttribute("reportesActivos", reportes);
+            request.setAttribute("historicoTotal", historico);
         } else if (role == TipoRol.ADMIN) {
             var solicitudes = visitaService.listarTodasActivasAdmin();
             for (var solicitud : solicitudes) {
