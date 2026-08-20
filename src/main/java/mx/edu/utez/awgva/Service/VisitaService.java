@@ -68,6 +68,10 @@ public class VisitaService {
         return visitaDao.contarDelDocente(idUsuario);
     }
 
+    public int[] contarResumenDocente(Long idUsuario) {
+        return visitaDao.contarResumenDocente(idUsuario);
+    }
+
     public List<ExpedienteVisita> listarParaDirector(
             Long division, String busqueda, String lugar, LocalDate fecha,
             String estado, String carrera, boolean historico

@@ -18,7 +18,15 @@
         '/admin/reportes',
         '/admin/usuarios',
         '/admin/firmantes',
-        '/admin/historico'
+        '/admin/historico',
+        '/director/solicitudes',
+        '/director/detalle',
+        '/director/historico',
+        '/estadias/documentos',
+        '/estadias/documento',
+        '/estadias/reporte',
+        '/estadias/historico',
+        '/estadias/expediente'
     ]);
 
     function csrf() {
@@ -159,18 +167,10 @@
             return;
         }
 
-        const link = event.target.closest('a[href]');
-        if (!link || link.hasAttribute('data-public-get')) return;
-        const href = link.getAttribute('href');
-        if (!href || href.startsWith('#') || href.startsWith('mailto:') ||
-            href.startsWith('tel:') || href.startsWith('javascript:') ||
-            href.startsWith('blob:')) return;
-
-        const destination = new URL(link.href, window.location.href);
-        if (destination.origin !== window.location.origin || isReadOnly(destination.href)) return;
-
-        event.preventDefault();
-        postTo(destination.href, {}, link.target || '');
+        // Los enlaces <a> normales se dejan al navegador como GET.
+        // Antes se convertían globalmente a POST, lo que impedía aprovechar bien
+        // la caché de navegación y hacía lento/torpe el botón Atrás. Las acciones
+        // que realmente requieren POST ya usan formularios o data-post-url.
     });
 
     window.awgvaPost = navigate;
