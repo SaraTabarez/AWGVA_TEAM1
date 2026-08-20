@@ -3,6 +3,9 @@
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <c:set var="ctx" value="${pageContext.request.contextPath}"/>
 <c:set var="reporteRechazado" value="${not empty reporte and fn:toUpperCase(reporte.estado) eq 'RECHAZADO'}"/>
+<c:set var="estadoFlujo" value="${fn:toUpperCase(expediente.estado)}"/>
+<c:set var="reporteEnviado" value="${not empty reporte or estadoFlujo == 'REPORTE_EN_REVISION' or estadoFlujo == 'REPORTE_RECHAZADO' or estadoFlujo == 'COMPLETADA'}"/>
+<c:set var="reporteAceptado" value="${(not empty reporte and fn:toUpperCase(reporte.estado) == 'ACEPTADO') or estadoFlujo == 'COMPLETADA'}"/>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -280,8 +283,8 @@
             <div class="step done"><i class="bi bi-file-text"></i>Carta enviada</div>
             <div class="step done"><i class="bi bi-check2"></i>Carta aceptada</div>
             <div class="step done"><i class="bi bi-truck"></i>Visita</div>
-            <div class="step active"><i class="bi bi-images"></i>Reporte enviado</div>
-            <div class="step"><i class="bi bi-check2-all"></i>Reporte aceptado</div>
+            <div class="step ${reporteEnviado ? 'done' : ''}"><i class="bi bi-images"></i>Reporte enviado</div>
+            <div class="step ${reporteAceptado ? 'done' : ''}"><i class="bi bi-check2-all"></i>Reporte aceptado</div>
         </div>
         <div class="date">Expediente de visita</div>
     </div>

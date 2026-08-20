@@ -196,14 +196,46 @@
 <script>
   const ctx='${ctx}', referenceToken='<c:out value="${referenceToken}"/>', csrf='<c:out value="${sessionScope.csrfToken}"/>';
   let redirectAfterPrint=false;
-  function imprimir(){redirectAfterPrint=true;window.print();}
-  async function descargarExistente(){
-    const body=new URLSearchParams({csrfToken:csrf,ref:referenceToken,tipo:'SOLICITUD_VISITA'});
-    try{await fetch(ctx+'/docente/marcar-descarga',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body});}catch(e){}
-    imprimir();
+
+  function imprimir(){
+    redirectAfterPrint=true;
+    window.print();
   }
-  window.addEventListener('afterprint',()=>{if(redirectAfterPrint&&referenceToken)window.awgvaPost(ctx+'/detalle-solicitud',{ref:referenceToken});});
-  <c:if test="${autoPrint}">window.addEventListener('load',()=>setTimeout(imprimir,300));</c:if>
+
+  async function registrarDescargaSolicitud(){
+    if(!referenceToken) return false;
+    const body=new URLSearchParams({csrfToken:csrf,ref:referenceToken,tipo:'SOLICITUD_VISITA'});
+    try{
+      const response=await fetch(ctx+'/docente/marcar-descarga',{
+        method:'POST',
+        headers:{'Content-Type':'application/x-www-form-urlencoded'},
+        credentials:'same-origin',
+        body
+      });
+      if(!response.ok){
+        alert('No fue posible registrar la descarga de la solicitud. Inténtalo nuevamente.');
+        return false;
+      }
+      return true;
+    }catch(error){
+      alert('No fue posible registrar la descarga de la solicitud. Inténtalo nuevamente.');
+      return false;
+    }
+  }
+
+  async function descargarExistente(){
+    if(await registrarDescargaSolicitud()) imprimir();
+  }
+
+  window.addEventListener('afterprint',()=>{
+    if(redirectAfterPrint&&referenceToken) window.awgvaPost(ctx+'/detalle-solicitud',{ref:referenceToken});
+  });
+
+  <c:if test="${autoPrint}">
+  window.addEventListener('load',async()=>{
+    if(await registrarDescargaSolicitud()) setTimeout(imprimir,300);
+  });
+  </c:if>
 </script>
 </body>
 </html>

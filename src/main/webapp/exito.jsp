@@ -17,7 +17,7 @@
     <div>
         <div class="icon"><i class="bi bi-check-square"></i></div>
         <div class="title">SOLICITUD FIRMADA ENVIADA CORRECTAMENTE</div>
-        <div class="text">El archivo quedó registrado y está listo para revisión de Estadías o Administración.<br>Cuando cualquiera de los dos lo acepte, se habilitará la Carta responsiva.</div>
+        <div class="text">Solicitud de visita firmada enviada. Espere confirmación por parte del departamento correspondiente;<br>se le notificará cuando sea aceptada o rechazada.</div>
         <form method="post" action="${ctx}/detalle-solicitud">
             <input type="hidden" name="csrfToken" value="<c:out value='${sessionScope.csrfToken}'/>">
             <input type="hidden" name="ref" value="<c:out value='${referenceToken}'/>">

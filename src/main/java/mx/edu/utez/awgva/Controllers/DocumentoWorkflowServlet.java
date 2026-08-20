@@ -1,5 +1,4 @@
 package mx.edu.utez.awgva.Controllers;
-
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.annotation.WebServlet;
@@ -89,12 +88,15 @@ public class DocumentoWorkflowServlet extends HttpServlet {
         }
         String estado = estado(expediente);
         if ("SOLICITUD_VISITA".equals(tipo)
-                && !Set.of("ACEPTADA_DIRECTOR", "SOLICITUD_RECHAZADA_ESTADIAS").contains(estado)) {
-            throw new IllegalArgumentException("La solicitud firmada no está habilitada en el estado actual.");
+                && !Set.of("SOLICITUD_DESCARGADA", "SOLICITUD_RECHAZADA_ESTADIAS",
+                "ACEPTADA_DIRECTOR").contains(estado)) {
+            throw new IllegalArgumentException(
+                    "Primero descarga la solicitud sin firmas; después podrás subirla firmada.");
         }
         if ("CARTA_RESPONSIVA".equals(tipo)
-                && !Set.of("SOLICITUD_APROBADA_ESTADIAS", "CARTA_RECHAZADA_ESTADIAS").contains(estado)) {
-            throw new IllegalArgumentException("La carta responsiva no está habilitada en el estado actual.");
+                && !Set.of("CARTA_DESCARGADA", "CARTA_RECHAZADA_ESTADIAS").contains(estado)) {
+            throw new IllegalArgumentException(
+                    "Primero descarga la carta responsiva; después podrás subirla firmada.");
         }
         Documento documento = guardarParte(request.getPart("archivo"), visitaId, tipo, Set.of(".pdf"), creados);
         if (!documentoService.guardar(documento)) {

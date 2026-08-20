@@ -9,8 +9,6 @@ import jakarta.servlet.http.HttpSession;
 import mx.edu.utez.awgva.Model.TipoRol;
 import mx.edu.utez.awgva.Model.Usuario;
 import mx.edu.utez.awgva.Service.VisitaService;
-import mx.edu.utez.awgva.Utils.CsrfTokenUtil;
-import mx.edu.utez.awgva.Utils.PostNavigationResponse;
 import mx.edu.utez.awgva.Utils.RecordTokenUtil;
 
 import java.io.IOException;
@@ -55,26 +53,18 @@ public class InicioServlet extends HttpServlet {
         }
 
         request.setAttribute("role", role.name());
-        if (role == TipoRol.DIRECTOR) {
-            PostNavigationResponse.send(
-                    response,
-                    request.getContextPath() + "/director/solicitudes",
-                    CsrfTokenUtil.getOrCreate(session),
-                    Map.of()
-            );
-            return;
-        }
         if (role == TipoRol.ESTADIAS) {
-            PostNavigationResponse.send(
-                    response,
-                    request.getContextPath() + "/estadias/documentos",
-                    CsrfTokenUtil.getOrCreate(session),
-                    Map.of()
-            );
+            response.sendRedirect(request.getContextPath() + "/estadias/documentos");
             return;
         }
         if (role == TipoRol.DOCENTE) {
-            request.setAttribute("totalSolicitudes", visitaService.contarDelDocente(usuario.getIdUsuario()));
+            var solicitudes = visitaService.listarSolicitudesActivasDocente(usuario.getIdUsuario());
+            var reportes = visitaService.listarReportesDelDocente(usuario.getIdUsuario());
+            var historico = visitaService.listarHistoricoDocente(usuario.getIdUsuario());
+            request.setAttribute("totalSolicitudes", solicitudes.size() + reportes.size() + historico.size());
+            request.setAttribute("solicitudesActivas", solicitudes.size());
+            request.setAttribute("reportesActivos", reportes.size());
+            request.setAttribute("historicoTotal", historico.size());
         } else if (role == TipoRol.ADMIN) {
             var solicitudes = visitaService.listarTodasActivasAdmin();
             for (var solicitud : solicitudes) {

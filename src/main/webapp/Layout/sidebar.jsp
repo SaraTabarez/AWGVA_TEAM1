@@ -68,11 +68,13 @@
 
         <nav>
             <ul>
-                <li>
-                    <a href="${ctx}/inicio" class="nav-link-role ${fn:endsWith(currentPath, '/inicio') ? 'active' : ''}">
-                        <i class="bi bi-house-door"></i><span>Inicio</span>
-                    </a>
-                </li>
+                <c:if test="${sessionScope.rol != 'ESTADIAS'}">
+                    <li>
+                        <a href="${ctx}/inicio" class="nav-link-role ${fn:endsWith(currentPath, '/inicio') ? 'active' : ''}">
+                            <i class="bi bi-house-door"></i><span>Inicio</span>
+                        </a>
+                    </li>
+                </c:if>
 
                 <c:choose>
                     <c:when test="${sessionScope.rol == 'DOCENTE'}">

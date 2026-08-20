@@ -309,13 +309,13 @@
 
                 <div class="action-grid">
                     <c:choose>
-                        <c:when test="${expediente.estado == 'ACEPTADA_DIRECTOR' or expediente.estado == 'SOLICITUD_RECHAZADA_ESTADIAS'}">
+                        <c:when test="${expediente.estado == 'SOLICITUD_DESCARGADA' or expediente.estado == 'SOLICITUD_RECHAZADA_ESTADIAS' or expediente.estado == 'ACEPTADA_DIRECTOR'}">
                             <button class="action blue" type="button" data-post-url="${ctx}/subir-solicitud-firmada" data-post-ref="<c:out value='${expediente.referenceToken}'/>"><i class="bi bi-file-earmark-arrow-up"></i> Solicitud firmada</button>
                         </c:when>
                         <c:otherwise><span class="action disabled"><i class="bi bi-lock"></i> Solicitud firmada</span></c:otherwise>
                     </c:choose>
                     <c:choose>
-                        <c:when test="${cartaDescargada and (expediente.estado == 'SOLICITUD_APROBADA_ESTADIAS' or expediente.estado == 'CARTA_RECHAZADA_ESTADIAS')}">
+                        <c:when test="${expediente.estado == 'CARTA_DESCARGADA' or expediente.estado == 'CARTA_RECHAZADA_ESTADIAS'}">
                             <button class="action blue" type="button" data-post-url="${ctx}/subir-carta-firmada" data-post-ref="<c:out value='${expediente.referenceToken}'/>"><i class="bi bi-file-earmark-arrow-up"></i> Carta firmada</button>
                         </c:when>
                         <c:otherwise><span class="action disabled"><i class="bi bi-lock"></i> Carta firmada</span></c:otherwise>
@@ -331,7 +331,7 @@
                 <div class="action-grid">
                     <button class="action blue" type="button" data-post-url="${ctx}/solicitud-previa" data-post-ref="<c:out value='${expediente.referenceToken}'/>"><i class="bi bi-download"></i> Solicitud sin firmas</button>
                     <c:choose>
-                        <c:when test="${expediente.estado == 'SOLICITUD_APROBADA_ESTADIAS' or expediente.estado == 'CARTA_RECHAZADA_ESTADIAS' or expediente.estado == 'CARTA_APROBADA_ESTADIAS' or expediente.estado == 'OFICIO_GENERADO' or expediente.estado == 'REPORTE_EN_REVISION' or expediente.estado == 'REPORTE_RECHAZADO' or expediente.estado == 'COMPLETADA'}">
+                        <c:when test="${expediente.estado == 'SOLICITUD_APROBADA_ESTADIAS' or expediente.estado == 'CARTA_DESCARGADA' or expediente.estado == 'CARTA_EN_REVISION' or expediente.estado == 'CARTA_RECHAZADA_ESTADIAS' or expediente.estado == 'CARTA_APROBADA_ESTADIAS' or expediente.estado == 'OFICIO_GENERADO' or expediente.estado == 'REPORTE_EN_REVISION' or expediente.estado == 'REPORTE_RECHAZADO' or expediente.estado == 'COMPLETADA'}">
                             <button class="action blue" type="button" data-post-url="${ctx}/carta-responsiva" data-post-ref="<c:out value='${expediente.referenceToken}'/>"><i class="bi bi-download"></i> Carta sin firmas</button>
                         </c:when>
                         <c:otherwise><span class="action disabled"><i class="bi bi-lock"></i> Carta sin firmas</span></c:otherwise>

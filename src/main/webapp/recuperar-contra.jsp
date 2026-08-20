@@ -63,6 +63,24 @@
                         </form>
                     </c:when>
 
+                    <c:when test="${step == 'correo-no-configurado' || step == 'correo-error'}">
+                        <div class="text-center">
+                            <i class="bi bi-envelope-exclamation display-4 text-warning"></i>
+                            <h2 class="h5 fw-bold mt-3">
+                                <c:choose>
+                                    <c:when test="${step == 'correo-no-configurado'}">Correo de recuperación no configurado</c:when>
+                                    <c:otherwise>No se pudo enviar el código</c:otherwise>
+                                </c:choose>
+                            </h2>
+                            <p class="text-secondary">La cuenta fue localizada. El problema corresponde al servicio de correo del servidor, no a tu usuario.</p>
+                            <form action="${ctx}/reset-password" method="post">
+                                <input type="hidden" name="csrfToken" value="<c:out value='${sessionScope.csrfToken}'/>">
+                                <input type="hidden" name="action" value="cancelar">
+                                <button class="btn btn-navy px-4" type="submit">Volver al inicio</button>
+                            </form>
+                        </div>
+                    </c:when>
+
                     <c:otherwise>
                         <div class="text-center"><i class="bi bi-person-x display-4 text-warning"></i><h2 class="h5 fw-bold mt-3">Cuenta no localizada</h2><p class="text-secondary">Revisa el mensaje mostrado o comunícate con Administración para dar de alta o reactivar tu cuenta.</p>
                             <form action="${ctx}/reset-password" method="post"><input type="hidden" name="csrfToken" value="<c:out value='${sessionScope.csrfToken}'/>"><input type="hidden" name="action" value="cancelar"><button class="btn btn-navy px-4" type="submit">Volver al inicio</button></form>

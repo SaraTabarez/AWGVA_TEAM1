@@ -1,5 +1,4 @@
 package mx.edu.utez.awgva.Service;
-
 import mx.edu.utez.awgva.Dao.VisitaDao;
 import mx.edu.utez.awgva.Model.Empresa;
 import mx.edu.utez.awgva.Model.ExpedienteVisita;
@@ -80,14 +79,12 @@ public class VisitaService {
         return visitaDao.buscarParaDirector(idVisita, division);
     }
 
-    public boolean revisarComoDirector(Long idVisita, Long division, String decision, String motivo) {
-        String estado = "ACEPTAR".equalsIgnoreCase(decision)
-                ? "ACEPTADA_DIRECTOR" : "RECHAZADA_DIRECTOR";
-        if ("RECHAZADA_DIRECTOR".equals(estado) && (motivo == null || motivo.isBlank())) {
-            throw new IllegalArgumentException("Escribe el motivo del rechazo.");
-        }
-        return visitaDao.revisarComoDirector(idVisita, division, estado,
-                motivo == null ? null : motivo.trim());
+    public boolean marcarSolicitudDescargada(Long idVisita, Long idUsuario) {
+        return visitaDao.marcarSolicitudDescargada(idVisita, idUsuario);
+    }
+
+    public boolean marcarCartaDescargada(Long idVisita, Long idUsuario) {
+        return visitaDao.marcarCartaDescargada(idVisita, idUsuario);
     }
 
     public List<ExpedienteVisita> listarHistoricoEstadias(String busqueda) {

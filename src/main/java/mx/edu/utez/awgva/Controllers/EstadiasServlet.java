@@ -34,8 +34,16 @@ public class EstadiasServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
-            throws IOException {
-        response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
+            throws IOException, ServletException {
+        request.setCharacterEncoding("UTF-8");
+        switch (request.getServletPath()) {
+            case "/estadias/documentos" -> bandeja(request, response);
+            case "/estadias/documento" -> revisarDocumento(request, response);
+            case "/estadias/reporte" -> revisarReporte(request, response);
+            case "/estadias/historico" -> historico(request, response);
+            case "/estadias/expediente" -> expedienteHistorico(request, response);
+            default -> response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
+        }
     }
 
     @Override
@@ -172,6 +180,10 @@ public class EstadiasServlet extends HttpServlet {
         List<Documento> documentos = documentoService.listarPorVisita(id);
         TokenViewUtil.decorateDocuments(request, usuario, documentos);
         expediente.setDocumentos(documentos);
+
+        List<Documento> evidencias = documentoService.listarEvidenciasReporte(id);
+        TokenViewUtil.decorateDocuments(request, usuario, evidencias);
+        request.setAttribute("evidencias", evidencias);
         request.setAttribute("expediente", expediente);
         request.getRequestDispatcher("/WEB-INF/views/estadias/expediente.jsp").forward(request, response);
     }

@@ -1,5 +1,4 @@
 package mx.edu.utez.awgva.Controllers;
-
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -101,9 +100,14 @@ public class PasswordResetServlet extends HttpServlet {
                     "El correo no pertenece al dominio institucional @utez.edu.mx.", null);
             return;
         }
+        if (result == UsuarioService.PasswordResetRequest.EMAIL_NOT_CONFIGURED) {
+            show(request, response, "correo-no-configurado",
+                    "El correo de recuperación todavía no está configurado en este servidor. Administración debe configurar el SMTP emisor antes de usar esta función.", null);
+            return;
+        }
         if (result != UsuarioService.PasswordResetRequest.SENT) {
-            show(request, response, "no-existe",
-                    "No fue posible enviar el correo. Comunícate con Administración.", null);
+            show(request, response, "correo-error",
+                    "La cuenta fue localizada, pero no fue posible enviar el código. Revisa la configuración SMTP del servidor e inténtalo nuevamente.", null);
             return;
         }
 

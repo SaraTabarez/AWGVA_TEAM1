@@ -1,5 +1,6 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <c:set var="ctx" value="${pageContext.request.contextPath}"/>
 <!DOCTYPE html>
 <html lang="es">
@@ -226,40 +227,31 @@
 
 <main class="main">
     <section class="panel">
-        <!-- Stepper -->
+        <!-- El paso sólo se ilumina cuando la acción YA ocurrió. -->
+        <c:set var="estadoFlujo" value="${fn:toUpperCase(expediente.estado)}"/>
+        <c:set var="cartaEnviada" value="${not empty documentoExistente
+            or estadoFlujo == 'CARTA_EN_REVISION'
+            or estadoFlujo == 'CARTA_APROBADA_ESTADIAS'
+            or estadoFlujo == 'CARTA_RECHAZADA_ESTADIAS'
+            or estadoFlujo == 'OFICIO_GENERADO'
+            or estadoFlujo == 'REPORTE_EN_REVISION'
+            or estadoFlujo == 'REPORTE_RECHAZADO'
+            or estadoFlujo == 'COMPLETADA'}"/>
+        <c:set var="cartaAceptada" value="${(not empty documentoExistente and fn:toUpperCase(documentoExistente.estado) == 'ACEPTADO')
+            or estadoFlujo == 'CARTA_APROBADA_ESTADIAS'
+            or estadoFlujo == 'OFICIO_GENERADO'
+            or estadoFlujo == 'REPORTE_EN_REVISION'
+            or estadoFlujo == 'REPORTE_RECHAZADO'
+            or estadoFlujo == 'COMPLETADA'}"/>
         <div class="stepper">
-            <div class="step done">
-                <div class="circle"><i class="bi bi-file-earmark"></i></div>
-                Solicitud creada
-            </div>
-            <div class="step done">
-                <div class="circle"><i class="bi bi-file-earmark-check"></i></div>
-                Solicitud enviada
-            </div>
-            <div class="step done">
-                <div class="circle"><i class="bi bi-patch-check"></i></div>
-                Solicitud aceptada
-            </div>
-            <div class="step active">
-                <div class="circle"><i class="bi bi-file-text"></i></div>
-                Carta enviada
-            </div>
-            <div class="step">
-                <div class="circle"><i class="bi bi-patch-check"></i></div>
-                Carta aceptada
-            </div>
-            <div class="step">
-                <div class="circle"><i class="bi bi-truck"></i></div>
-                Visita
-            </div>
-            <div class="step">
-                <div class="circle"><i class="bi bi-images"></i></div>
-                Reporte enviado
-            </div>
-            <div class="step">
-                <div class="circle"><i class="bi bi-check2"></i></div>
-                Reporte aceptado
-            </div>
+            <div class="step done"><div class="circle"><i class="bi bi-file-earmark"></i></div>Solicitud creada</div>
+            <div class="step done"><div class="circle"><i class="bi bi-file-earmark-check"></i></div>Solicitud enviada</div>
+            <div class="step done"><div class="circle"><i class="bi bi-patch-check"></i></div>Solicitud aceptada</div>
+            <div class="step ${cartaEnviada ? 'done' : ''}"><div class="circle"><i class="bi bi-file-text"></i></div>Carta enviada</div>
+            <div class="step ${cartaAceptada ? 'done' : ''}"><div class="circle"><i class="bi bi-patch-check"></i></div>Carta aceptada</div>
+            <div class="step"><div class="circle"><i class="bi bi-truck"></i></div>Visita</div>
+            <div class="step"><div class="circle"><i class="bi bi-images"></i></div>Reporte enviado</div>
+            <div class="step"><div class="circle"><i class="bi bi-check2"></i></div>Reporte aceptado</div>
         </div>
 
         <!-- Header -->

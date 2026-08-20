@@ -1,5 +1,4 @@
 package mx.edu.utez.awgva.Service;
-
 import mx.edu.utez.awgva.Dao.UsuarioDao;
 import mx.edu.utez.awgva.Model.TipoRol;
 import mx.edu.utez.awgva.Model.Usuario;
@@ -133,6 +132,9 @@ public class UsuarioService {
         }
         if (usuario.getEstado() == null || usuario.getEstado() != 1) {
             return PasswordResetRequest.ACCOUNT_INACTIVE;
+        }
+        if (!EmailSender.isConfigured()) {
+            return PasswordResetRequest.EMAIL_NOT_CONFIGURED;
         }
 
         String code = generateRandomCode(6);
@@ -287,6 +289,7 @@ public class UsuarioService {
         INVALID_EMAIL,
         ACCOUNT_NOT_FOUND,
         ACCOUNT_INACTIVE,
+        EMAIL_NOT_CONFIGURED,
         ERROR
     }
 
