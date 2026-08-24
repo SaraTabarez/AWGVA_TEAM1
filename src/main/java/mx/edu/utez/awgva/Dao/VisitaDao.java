@@ -17,23 +17,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 /** Consultas de visitas. Los límites por propietario/división se aplican en SQL. */
-import mx.edu.utez.awgva.Model.Empresa;
-import mx.edu.utez.awgva.Model.ExpedienteVisita;
-import mx.edu.utez.awgva.Model.GrupoVisita;
-import mx.edu.utez.awgva.Model.Visita;
-import mx.edu.utez.awgva.Utils.DatabaseConnection;
-
-import java.sql.Connection;
-import java.sql.Date;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Timestamp;
-import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
-
-/** Consultas de visitas. Los límites por propietario/división se aplican en SQL. */
 public class VisitaDao {
 
     private static final String BASE_SELECT = "SELECT "
@@ -42,7 +25,8 @@ public class VisitaDao {
             + "v.PROPOSITO_VISITA, v.FECHA_INICIO_VISITA, v.FECHA_FIN_VISITA, "
             + "v.ESTADO, v.MOTIVO_RECHAZO, v.CREADO_EN, "
             + "d.DIVISION AS NOMBRE_DIVISION, "
-            + "TRIM(u.NOMBRES || ' ' || u.APELLIDO_PATERNO || ' ' || NVL(u.APELLIDO_MATERNO, '')) AS DOCENTE, "
+            + "NVL(NULLIF(TRIM(v.DOCENTE_ENCARGADO), ''), "
+            + "TRIM(u.NOMBRES || ' ' || u.APELLIDO_PATERNO || ' ' || NVL(u.APELLIDO_MATERNO, ''))) AS DOCENTE, "
             + "u.CORREO AS CORREO_DOCENTE, e.NOMBRE_EMPRESA, e.DIRECCION, e.TELEFONO, e.CORREO, "
             + "g.PROGRAMA_EDUCATIVO, g.SEMESTRE, g.NOMBRE_GRUPO, g.NUMERO_ESTUDIANTES, "
             + "rep.ESTADO_REPORTE "
@@ -132,9 +116,9 @@ public class VisitaDao {
     public List<ExpedienteVisita> listarReportesDelDocente(Long idUsuario) {
         return consultarLista(BASE_SELECT
                         + "WHERE v.ID_USUARIO_FK = ? "
-                        + "AND (rep.ESTADO_REPORTE IS NOT NULL "
-                        + "OR UPPER(v.ESTADO) IN ('REPORTE_EN_REVISION','REPORTE_RECHAZADO')) "
-                        + "AND UPPER(v.ESTADO) <> 'COMPLETADA' ORDER BY v.CREADO_EN DESC",
+                        + "AND UPPER(v.ESTADO) IN ('CARTA_APROBADA_ESTADIAS','OFICIO_GENERADO',"
+                        + "'REPORTE_EN_REVISION','REPORTE_RECHAZADO') "
+                        + "ORDER BY v.CREADO_EN DESC",
                 statement -> statement.setLong(1, idUsuario));
     }
 

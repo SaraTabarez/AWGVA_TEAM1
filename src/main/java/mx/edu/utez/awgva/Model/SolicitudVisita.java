@@ -15,6 +15,7 @@ public class SolicitudVisita implements Serializable {
     private String solicitanteCargo;
     private String solicitanteTelefono;
     private String docentesAcompanantes;
+    private List<String> nombresDocentesAcompanantes = new ArrayList<>();
     private String empresaNombre;
     private String empresaDireccion;
     private String empresaTelefono;
@@ -46,6 +47,10 @@ public class SolicitudVisita implements Serializable {
     public void setSolicitanteTelefono(String solicitanteTelefono) { this.solicitanteTelefono = solicitanteTelefono; }
     public String getDocentesAcompanantes() { return docentesAcompanantes; }
     public void setDocentesAcompanantes(String docentesAcompanantes) { this.docentesAcompanantes = docentesAcompanantes; }
+    public List<String> getNombresDocentesAcompanantes() { return nombresDocentesAcompanantes; }
+    public void setNombresDocentesAcompanantes(List<String> nombresDocentesAcompanantes) {
+        this.nombresDocentesAcompanantes = nombresDocentesAcompanantes == null ? new ArrayList<>() : new ArrayList<>(nombresDocentesAcompanantes);
+    }
     public String getEmpresaNombre() { return empresaNombre; }
     public void setEmpresaNombre(String empresaNombre) { this.empresaNombre = empresaNombre; }
     public String getEmpresaDireccion() { return empresaDireccion; }
