@@ -23,6 +23,7 @@ import mx.edu.utez.awgva.Utils.TokenViewUtil;
 
 import java.io.IOException;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
 import java.util.HashMap;
 import java.util.ArrayList;
@@ -105,6 +106,16 @@ public class DocenteServlet extends HttpServlet {
             }
         } catch (IllegalArgumentException exception) {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, exception.getMessage());
+        } catch (IllegalStateException exception) {
+            if ("/reporte-docente".equals(request.getServletPath())) {
+                List<ExpedienteVisita> items = visitaService.listarReportesDelDocente(usuario.getIdUsuario());
+                decorate(request, usuario, items);
+                request.setAttribute("solicitudes", items);
+                request.setAttribute("error", exception.getMessage());
+                forward(request, response, "/subir-docs.jsp");
+                return;
+            }
+            response.sendError(HttpServletResponse.SC_CONFLICT, exception.getMessage());
         }
     }
 
@@ -133,6 +144,7 @@ public class DocenteServlet extends HttpServlet {
             request.setAttribute("borrador", borrador);
             request.setAttribute("error", exception.getMessage());
             request.setAttribute("carreras", CatalogoCarreras.deDivision(usuario.getNombreDivision()));
+            request.setAttribute("divisionCodigo", CatalogoCarreras.codigoDivision(usuario.getNombreDivision()));
             forward(request, response, "/nueva-solicitud.jsp");
         }
     }
@@ -146,6 +158,7 @@ public class DocenteServlet extends HttpServlet {
             session.removeAttribute(BORRADOR_SOLICITUD);
         }
         request.setAttribute("carreras", CatalogoCarreras.deDivision(usuario.getNombreDivision()));
+        request.setAttribute("divisionCodigo", CatalogoCarreras.codigoDivision(usuario.getNombreDivision()));
         forward(request, response, "/nueva-solicitud.jsp");
     }
 
@@ -190,9 +203,7 @@ public class DocenteServlet extends HttpServlet {
 
         LocalDate inicio = parseFecha(solicitud.getFechaInicio());
         LocalDate fin = parseFecha(solicitud.getFechaTermino());
-        if (fin.isBefore(inicio)) {
-            throw new IllegalArgumentException("La fecha de término no puede ser anterior a la fecha de inicio.");
-        }
+        validarFechas(inicio, fin);
 
         Visita visita = new Visita();
         visita.setIdUsuarioFk(usuario.getIdUsuario());
@@ -200,8 +211,8 @@ public class DocenteServlet extends HttpServlet {
                 "Tu usuario no tiene una división asignada."));
         visita.setTituloVisita("Visita académica a " + solicitud.getEmpresaNombre());
         visita.setAsignaturaAReforzar(solicitud.getAsignaturas());
-        visita.setDocenteAcompanante(solicitud.getDocentesAcompanantes());
-        visita.setDocenteEncargado(usuario.getNombreCompleto());
+        visita.setDocenteAcompanante(serializarAcompanantes(solicitud));
+        visita.setDocenteEncargado(solicitud.getSolicitanteNombre());
         visita.setPropositoVisita(solicitud.getObjetivo());
         visita.setFechaInicioVisita(inicio);
         visita.setFechaFinVisita(fin);
@@ -365,15 +376,30 @@ public class DocenteServlet extends HttpServlet {
 
     private SolicitudVisita leerFormulario(HttpServletRequest request, Usuario usuario) {
         SolicitudVisita solicitud = new SolicitudVisita();
-        solicitud.setSolicitanteNombre(usuario.getNombreCompleto());
+
+        solicitud.setSolicitanteNombre(texto(request, "solicitanteNombre", 150, null));
         solicitud.setSolicitanteCargo(usuario.getTipoRol().map(Enum::name).orElse("DOCENTE"));
-        solicitud.setSolicitanteTelefono(texto(request, "solicitanteTelefono", 30, null));
-        solicitud.setDocentesAcompanantes(String.valueOf(entero(request, "docentesAcompanantes", 0, 3,
-                "El número de docentes acompañantes debe estar entre 0 y 3.")));
+
+        String telefonoSolicitante = texto(request, "solicitanteTelefono", 15, null);
+        validarTelefono(telefonoSolicitante, "El teléfono del solicitante sólo puede contener números.");
+        solicitud.setSolicitanteTelefono(telefonoSolicitante);
+
+        int cantidadAcompanantes = entero(request, "docentesAcompanantes", 0, 3,
+                "El número de docentes acompañantes debe estar entre 0 y 3.");
+        solicitud.setDocentesAcompanantes(String.valueOf(cantidadAcompanantes));
+        solicitud.setNombresDocentesAcompanantes(leerNombresAcompanantes(request, cantidadAcompanantes));
+
         solicitud.setEmpresaNombre(texto(request, "empresaNombre", 150, null));
         solicitud.setEmpresaDireccion(texto(request, "empresaDireccion", 250, null));
-        solicitud.setEmpresaTelefono(texto(request, "empresaTelefono", 30, null));
-        solicitud.setEmpresaEmail(texto(request, "empresaEmail", 160, null));
+
+        String telefonoEmpresa = texto(request, "empresaTelefono", 15, null);
+        validarTelefono(telefonoEmpresa, "El teléfono del lugar sólo puede contener números.");
+        solicitud.setEmpresaTelefono(telefonoEmpresa);
+
+        String correoEmpresa = texto(request, "empresaEmail", 160, null);
+        validarCorreo(correoEmpresa);
+        solicitud.setEmpresaEmail(correoEmpresa);
+
         solicitud.setFechaInicio(texto(request, "fechaInicio", 10, null));
         solicitud.setFechaTermino(texto(request, "fechaTermino", 10, null));
         solicitud.setHoraInicio(texto(request, "horaInicio", 5, "No registrada"));
@@ -385,24 +411,26 @@ public class DocenteServlet extends HttpServlet {
         solicitud.setProgramaEducativo(primero.getCarrera());
         solicitud.setSemestre(primero.getCuatrimestre());
         solicitud.setGrupo(primero.getGrupo());
+
         int total = grupos.stream().mapToInt(DetalleGrupoSolicitud::getCantidadAlumnos).sum();
         solicitud.setDacea("0");
         solicitud.setDatefi("0");
         solicitud.setDatid("0");
         solicitud.setDami("0");
-        String area = valor(usuario.getNombreDivision(), "").toUpperCase(Locale.ROOT);
-        if (area.contains("DACEA")) solicitud.setDacea(String.valueOf(total));
-        else if (area.contains("DATEFI")) solicitud.setDatefi(String.valueOf(total));
-        else if (area.contains("DATID")) solicitud.setDatid(String.valueOf(total));
-        else if (area.contains("DAMI")) solicitud.setDami(String.valueOf(total));
+
+        String area = CatalogoCarreras.codigoDivision(usuario.getNombreDivision());
+        if ("DACEA".equals(area)) solicitud.setDacea(String.valueOf(total));
+        else if ("DATEFI".equals(area)) solicitud.setDatefi(String.valueOf(total));
+        else if ("DATID".equals(area)) solicitud.setDatid(String.valueOf(total));
+        else if ("DAMI".equals(area)) solicitud.setDami(String.valueOf(total));
+
         solicitud.setTotalEstudiantes(String.valueOf(total));
         solicitud.setAsignaturas(texto(request, "asignaturas", 500, null));
 
         LocalDate inicio = parseFecha(solicitud.getFechaInicio());
         LocalDate fin = parseFecha(solicitud.getFechaTermino());
-        if (fin.isBefore(inicio)) {
-            throw new IllegalArgumentException("La fecha de término no puede ser anterior a la fecha de inicio.");
-        }
+        validarFechas(inicio, fin);
+
         return solicitud;
     }
 
@@ -428,13 +456,27 @@ public class DocenteServlet extends HttpServlet {
             if (!CatalogoCarreras.pertenece(usuario.getNombreDivision(), carrera)) {
                 throw new IllegalArgumentException("Selecciona carreras pertenecientes a tu división.");
             }
-            if (!area.equalsIgnoreCase(valor(usuario.getNombreDivision(), ""))) {
+            String divisionUsuario = CatalogoCarreras.codigoDivision(usuario.getNombreDivision());
+            if (!CatalogoCarreras.codigoDivision(area).equals(divisionUsuario)) {
                 throw new IllegalArgumentException("El área debe coincidir con la división de tu cuenta.");
             }
-            if (cuatrimestre.isBlank() || cuatrimestre.length() > 30
-                    || grupo.isBlank() || grupo.length() > 30) {
-                throw new IllegalArgumentException("Completa cuatrimestre y grupo.");
+            area = divisionUsuario;
+            int numeroCuatrimestre;
+            try {
+                numeroCuatrimestre = Integer.parseInt(cuatrimestre);
+            } catch (NumberFormatException exception) {
+                throw new IllegalArgumentException("El cuatrimestre debe ser un número del 1 al 12.");
             }
+            if (numeroCuatrimestre < 1 || numeroCuatrimestre > 12) {
+                throw new IllegalArgumentException("El cuatrimestre debe estar entre 1 y 12.");
+            }
+            cuatrimestre = String.valueOf(numeroCuatrimestre);
+
+            if (grupo.isBlank() || grupo.length() > 10
+                    || !grupo.matches("[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+")) {
+                throw new IllegalArgumentException("El grupo sólo puede contener letras.");
+            }
+
             int alumnos;
             try { alumnos = Integer.parseInt(cantidades[index]); }
             catch (NumberFormatException exception) { throw new IllegalArgumentException("Captura cantidades válidas."); }
@@ -479,7 +521,12 @@ public class DocenteServlet extends HttpServlet {
         solicitud.setSolicitanteNombre(expediente.getDocente());
         solicitud.setSolicitanteCargo(usuario.getTipoRol().map(Enum::name).orElse("DOCENTE"));
         solicitud.setSolicitanteTelefono("");
-        solicitud.setDocentesAcompanantes(valor(expediente.getDocenteAcompanante(), "0"));
+        String acompanantesGuardados = valor(expediente.getDocenteAcompanante(), "0");
+        List<String> nombresAcompanantes = deserializarAcompanantes(acompanantesGuardados);
+        solicitud.setNombresDocentesAcompanantes(nombresAcompanantes);
+        solicitud.setDocentesAcompanantes(esEntero(acompanantesGuardados)
+                ? acompanantesGuardados
+                : String.valueOf(nombresAcompanantes.size()));
         solicitud.setEmpresaNombre(expediente.getEmpresa());
         solicitud.setEmpresaDireccion(expediente.getDireccionEmpresa());
         solicitud.setEmpresaTelefono(expediente.getTelefonoEmpresa());
@@ -498,11 +545,12 @@ public class DocenteServlet extends HttpServlet {
         solicitud.setDatefi("0");
         solicitud.setDatid("0");
         solicitud.setDami("0");
-        String division = valor(expediente.getDivision(), usuario.getNombreDivision()).toUpperCase(Locale.ROOT);
-        if (division.contains("DACEA")) solicitud.setDacea(String.valueOf(total));
-        else if (division.contains("DATEFI")) solicitud.setDatefi(String.valueOf(total));
-        else if (division.contains("DATID")) solicitud.setDatid(String.valueOf(total));
-        else if (division.contains("DAMI")) solicitud.setDami(String.valueOf(total));
+        String division = CatalogoCarreras.codigoDivision(
+                valor(expediente.getDivision(), usuario.getNombreDivision()));
+        if ("DACEA".equals(division)) solicitud.setDacea(String.valueOf(total));
+        else if ("DATEFI".equals(division)) solicitud.setDatefi(String.valueOf(total));
+        else if ("DATID".equals(division)) solicitud.setDatid(String.valueOf(total));
+        else if ("DAMI".equals(division)) solicitud.setDami(String.valueOf(total));
         solicitud.setTotalEstudiantes(String.valueOf(total));
         List<DetalleGrupoSolicitud> detalles = new ArrayList<>();
         for (GrupoVisita grupo : visitaService.listarGrupos(expediente.getIdVisita())) {
@@ -555,6 +603,79 @@ public class DocenteServlet extends HttpServlet {
         Long id = idOpcional(valor);
         if (id == null) throw new IllegalArgumentException("Identificador no válido.");
         return id;
+    }
+
+    private List<String> leerNombresAcompanantes(HttpServletRequest request, int cantidad) {
+        if (cantidad == 0) return new ArrayList<>();
+
+        String[] valores = request.getParameterValues("docenteAcompananteNombre");
+        if (valores == null || valores.length != cantidad) {
+            throw new IllegalArgumentException("Captura el nombre de cada docente acompañante.");
+        }
+
+        List<String> nombres = new ArrayList<>();
+        for (String valor : valores) {
+            String nombre = valor == null ? "" : valor.trim();
+            if (nombre.isBlank() || nombre.length() > 100) {
+                throw new IllegalArgumentException("Captura nombres válidos para los docentes acompañantes.");
+            }
+            if (!nombre.matches("[\\p{L} .'-]+")) {
+                throw new IllegalArgumentException(
+                        "Los nombres de docentes acompañantes sólo pueden contener letras, espacios, punto, guion o apóstrofe.");
+            }
+            nombres.add(nombre);
+        }
+        return nombres;
+    }
+
+    private String serializarAcompanantes(SolicitudVisita solicitud) {
+        List<String> nombres = solicitud.getNombresDocentesAcompanantes();
+        if (nombres == null || nombres.isEmpty()) {
+            return valor(solicitud.getDocentesAcompanantes(), "0");
+        }
+        return String.join(" | ", nombres);
+    }
+
+    private List<String> deserializarAcompanantes(String valorGuardado) {
+        List<String> nombres = new ArrayList<>();
+        if (valorGuardado == null || valorGuardado.isBlank() || esEntero(valorGuardado)) {
+            return nombres;
+        }
+        for (String parte : valorGuardado.split("\\s*\\|\\s*")) {
+            String nombre = parte.trim();
+            if (!nombre.isBlank()) nombres.add(nombre);
+        }
+        return nombres;
+    }
+
+    private boolean esEntero(String valor) {
+        if (valor == null || valor.isBlank()) return false;
+        for (int index = 0; index < valor.length(); index++) {
+            if (!Character.isDigit(valor.charAt(index))) return false;
+        }
+        return true;
+    }
+
+    private void validarTelefono(String telefono, String mensaje) {
+        if (telefono == null || !telefono.matches("\\d{1,15}")) {
+            throw new IllegalArgumentException(mensaje);
+        }
+    }
+
+    private void validarCorreo(String correo) {
+        if (correo == null || !correo.matches("^[^\\s@]+@[^\\s@]+$")) {
+            throw new IllegalArgumentException("Captura un correo válido que incluya @.");
+        }
+    }
+
+    private void validarFechas(LocalDate inicio, LocalDate fin) {
+        LocalDate hoy = LocalDate.now(ZoneId.of("America/Mexico_City"));
+        if (inicio.isBefore(hoy) || fin.isBefore(hoy)) {
+            throw new IllegalArgumentException("Las fechas de la visita deben ser de hoy en adelante.");
+        }
+        if (fin.isBefore(inicio)) {
+            throw new IllegalArgumentException("La fecha de término no puede ser anterior a la fecha de inicio.");
+        }
     }
 
     private Long visitaId(HttpServletRequest request, Usuario usuario) {

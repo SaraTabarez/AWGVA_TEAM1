@@ -1,121 +1,242 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<c:set var="ctx" value="${pageContext.request.contextPath}"/>
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reportes de mis visitas</title>
+    <title>Reportes de mis visitas - AWGVA</title>
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background-color: #f5f5f5; margin: 0; padding: 0; }
-        .main-content { margin-left: 250px; padding: 30px; min-height: 100vh; }
-        .page-header { background: white; padding: 20px 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 25px; }
-        .page-header h2 { margin: 0; color: #333; font-size: 24px; font-weight: 600; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-        .stepper { display: flex; justify-content: space-between; margin-bottom: 30px; padding: 20px; background: white; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        .step { display: flex; flex-direction: column; align-items: center; flex: 1; position: relative; }
-        .step:not(:last-child)::after { content: ''; position: absolute; top: 20px; left: 50%; width: 100%; height: 2px; background: #e0e0e0; }
-        .step.completed:not(:last-child)::after { background: #ff6b35; }
-        .step-circle { width: 40px; height: 40px; border-radius: 50%; background: #e0e0e0; display: flex; align-items: center; justify-content: center; font-weight: 600; color: #666; margin-bottom: 8px; z-index: 1; transition: all 0.3s ease; }
-        .step.completed .step-circle { background: #ff6b35; color: white; }
-        .step.active .step-circle { background: #ff6b35; color: white; box-shadow: 0 0 0 4px rgba(255, 107, 53, 0.2); }
-        .step-label { font-size: 11px; text-align: center; color: #666; max-width: 80px; line-height: 1.2; }
-        .step.completed .step-label { color: #ff6b35; font-weight: 500; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+        }
 
-        .cards-section { background: white; padding: 25px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 25px; }
-        .company-banner { width: 100%; height: 110px; background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%); border-radius: 8px; margin-bottom: 12px; display: flex; align-items: center; justify-content: center; padding: 12px; text-align: center; }
-        .company-banner h2 { color: #ffffff; font-size: 1.1rem; font-weight: 800; margin: 0; text-transform: uppercase; word-break: break-word; }
+        .main-content {
+            margin-left: 240px;
+            padding: 30px;
+            min-height: 100vh;
+        }
 
-        .upload-section { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 25px; }
-        .section-title { font-size: 18px; font-weight: 600; color: #333; margin-bottom: 10px; }
-        .section-subtitle { font-size: 14px; color: #666; margin-bottom: 20px; }
-        .upload-area { border: 2px dashed #d0d0d0; border-radius: 8px; padding: 40px; text-align: center; background-color: #fafafa; cursor: pointer; transition: all 0.3s ease; }
-        .upload-area:hover { background-color: #f0f0f0; border-color: #ff6b35; }
-        .upload-area i { font-size: 48px; color: #ff6b35; margin-bottom: 15px; }
-        .upload-area h4 { font-size: 16px; color: #333; margin-bottom: 8px; }
-        .upload-area p { font-size: 13px; color: #999; margin-bottom: 5px; }
-        .upload-info { display: flex; justify-content: space-between; margin-top: 15px; font-size: 13px; color: #666; }
+        .page-header,
+        .cards-section {
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, .1);
+        }
 
-        .documents-table { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        .table { margin-bottom: 0; }
-        .table thead th { background-color: #1e3a5f; color: #ffffff; font-weight: 600; font-size: 13px; padding: 12px 15px; border: none; }
-        .table tbody td { padding: 12px 15px; font-size: 13px; color: #333; vertical-align: middle; background-color: #f8f9fa; }
-        .badge-draft { background-color: #1e3a5f; color: #ffffff; padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 500; }
+        .page-header {
+            padding: 20px 30px;
+            margin-bottom: 25px;
+        }
 
-        /* Ajuste para que los botones y links se vean igual */
-        .action-btn {
-            background: none;
-            border: none;
-            color: #333;
-            padding: 5px 8px;
-            cursor: pointer;
-            transition: color 0.3s ease;
-            text-decoration: none;
-            display: inline-flex;
+        .page-header h1 {
+            margin: 0;
+            color: #1e3a5f;
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .cards-section {
+            padding: 25px;
+        }
+
+        .section-title {
+            margin-bottom: 18px;
+            color: #1e3a5f;
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .reports-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 320px));
+            gap: 1.5rem;
+        }
+
+        .report-card-button {
+            width: 100%;
+            border: 0;
+            background: transparent;
+            padding: 0;
+            text-align: left;
+            color: inherit;
+        }
+
+        .report-card {
+            border: 1px solid #d1d5db;
+            border-radius: 12px;
+            padding: 12px;
+            background: #fff;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, .04);
+            transition: transform .2s ease, box-shadow .2s ease;
+        }
+
+        .report-card-button:hover .report-card,
+        .report-card-button:focus-visible .report-card {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, .09);
+        }
+
+        .company-banner {
+            width: 100%;
+            height: 110px;
+            background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%);
+            border-radius: 8px;
+            margin-bottom: 12px;
+            display: flex;
             align-items: center;
             justify-content: center;
+            padding: 12px;
+            text-align: center;
         }
-        .action-btn:hover { color: #ff6b35; }
 
-        .navigation-buttons { display: flex; justify-content: space-between; margin-top: 25px; }
-        .btn-custom { padding: 10px 35px; border-radius: 6px; font-weight: 600; transition: all 0.3s ease; text-decoration: none; display: inline-flex; align-items: center; }
-        .btn-orange { background-color: #ff6b35; border-color: #ff6b35; color: white; }
-        .btn-orange:hover { background-color: #e55a2b; border-color: #e55a2b; color: white; }
-        .btn-primary-custom { background-color: #ff6b35; border-color: #ff6b35; color: white; border: none; }
-        .btn-primary-custom:hover { background-color: #e55a2b; border-color: #e55a2b; color: white; }
+        .company-banner h2 {
+            color: #fff;
+            font-size: 1.1rem;
+            font-weight: 800;
+            margin: 0;
+            text-transform: uppercase;
+            word-break: break-word;
+        }
+
+        .card-company {
+            color: #1e3a5f;
+            font-weight: 700;
+            font-size: .95rem;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .card-footer-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .card-state {
+            color: #94a3b8;
+            font-size: .85rem;
+            font-weight: 600;
+        }
+
+        .report-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            border-radius: 6px;
+            padding: 6px 10px;
+            font-size: .8rem;
+            font-weight: 700;
+            color: #fff;
+            background: #198754;
+            white-space: nowrap;
+        }
+
+        .report-badge.pending {
+            background: #1e3a5f;
+        }
 
         @media (max-width: 768px) {
-            .main-content { margin-left: 0; padding: 15px; }
-            .stepper { flex-wrap: wrap; }
-            .step { min-width: 50%; margin-bottom: 20px; }
+            .main-content {
+                margin-left: 0;
+                padding: 15px;
+            }
         }
     </style>
 </head>
 <body>
-<jsp:include page="Layout/sidebar.jsp"/>
 
-<div class="main-content">
+<jsp:include page="/Layout/sidebar.jsp"/>
+
+<main class="main-content">
     <div class="container-fluid">
-        <div class="page-header">
-            <h2>Reportes de mis visitas</h2>
-        </div>
+        <header class="page-header">
+            <h1>Reportes de mis visitas</h1>
+        </header>
 
-        <!-- Se conserva la tarjeta original; se eliminan el stepper, la carga genérica,
-             la tabla de documentos y sus botones, tal como se solicitó. -->
-        <div class="cards-section">
-            <h3 class="section-title mb-3">Reportes de mis visitas</h3>
-            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 320px)); gap: 1.5rem;">
+        <c:if test="${not empty error}">
+            <div class="alert alert-warning mb-4">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                <c:out value="${error}"/>
+            </div>
+        </c:if>
+
+        <section class="cards-section">
+            <h2 class="section-title">Reportes de mis visitas</h2>
+
+            <div class="reports-grid">
                 <c:forEach var="sol" items="${solicitudes}">
-                    <button type="button" data-post-url="${pageContext.request.contextPath}/reporte-docente" data-post-ref="<c:out value='${sol.referenceToken}'/>" style="border:0;background:transparent;padding:0;text-align:left;color:inherit;width:100%;">
-                        <div style="border: 1px solid #d1d5db; border-radius: 12px; padding: 12px; background-color: #ffffff; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);">
+                    <button type="button"
+                            class="report-card-button"
+                            data-post-url="${ctx}/reporte-docente"
+                            data-post-ref="<c:out value='${sol.referenceToken}'/>">
+
+                        <article class="report-card">
                             <div class="company-banner">
                                 <h2><c:out value="${sol.empresa}"/></h2>
                             </div>
-                            <div style="color: #1e3a5f; font-weight: 700; font-size: 0.95rem; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between;">
-                                <span><c:out value="${sol.empresa}"/>, <c:out value="${sol.direccionEmpresa}"/></span>
-                                <i class="fa-solid fa-location-dot" style="color: #1e3a5f;"></i>
+
+                            <div class="card-company">
+                                <span>
+                                    <c:out value="${sol.empresa}"/>,
+                                    <c:out value="${sol.direccionEmpresa}"/>
+                                </span>
+                                <i class="bi bi-geo-alt-fill"></i>
                             </div>
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
-                                <span style="color: #94a3b8; font-size: 0.85rem; font-weight: 600;"><c:out value="${sol.estadoLegible}"/></span>
-                                <span class="badge ${empty sol.estadoReporte ? 'bg-secondary' : 'bg-success'}" style="font-size: 0.8rem; padding: 6px 10px;">
-                            <i class="fa-solid fa-file-lines me-1"></i>
-                            <c:out value="${empty sol.estadoReporte ? 'Capturar reporte' : sol.estadoReporte}"/>
-                        </span>
+
+                            <div class="card-footer-info">
+                                <span class="card-state">
+                                    <c:out value="${sol.estadoLegible}"/>
+                                </span>
+
+                                <c:choose>
+                                    <c:when test="${empty sol.estadoReporte}">
+                                        <span class="report-badge pending">
+                                            <i class="bi bi-pencil-square"></i>
+                                            Capturar reporte
+                                        </span>
+                                    </c:when>
+                                    <c:otherwise>
+                                        <span class="report-badge">
+                                            <i class="bi bi-file-earmark-check"></i>
+                                            <c:out value="${sol.estadoReporte}"/>
+                                        </span>
+                                    </c:otherwise>
+                                </c:choose>
                             </div>
-                        </div>
+                        </article>
                     </button>
                 </c:forEach>
+
                 <c:if test="${empty solicitudes}">
-                    <div style="grid-column: 1 / -1;" class="alert alert-light border text-secondary fw-semibold p-3 text-center rounded-3">
-                        <i class="fa-solid fa-folder-open me-2 text-muted"></i>Aún no has enviado reportes. Cuando envíes uno, la tarjeta aparecerá aquí hasta que Estadías lo acepte.
+                    <div class="alert alert-light border text-secondary fw-semibold p-3 text-center rounded-3"
+                         style="grid-column: 1 / -1;">
+                        <i class="bi bi-folder2-open me-2 text-muted"></i>
+                        No tienes reportes habilitados. Una visita aparecerá aquí cuando la Carta Responsiva sea aceptada.
                     </div>
                 </c:if>
             </div>
-        </div>
+        </section>
     </div>
-</div>
+</main>
+
 </body>
 </html>

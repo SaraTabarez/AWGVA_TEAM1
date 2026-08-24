@@ -4,6 +4,9 @@
 
 <c:set var="ctx" value="${pageContext.request.contextPath}"/>
 <c:set var="currentPath" value="${pageContext.request.requestURI}"/>
+<c:set var="sidebarNombre" value="${not empty sessionScope.nombreUsuario ? sessionScope.nombreUsuario : sessionScope.usuario.nombreCompleto}"/>
+<c:set var="sidebarRol" value="${not empty sessionScope.rol ? sessionScope.rol : sessionScope.usuario.nombreRol}"/>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
 
 <style>
     .sidebar {
@@ -61,9 +64,14 @@
 <aside class="sidebar" aria-label="Navegación principal">
     <div>
         <div class="user-profile">
-            <div class="avatar" aria-hidden="true"><i class="bi bi-person"></i></div>
-            <div class="user-name"><c:out value="${sessionScope.nombreUsuario}"/></div>
-            <div class="user-role"><c:out value="${sessionScope.rol}"/></div>
+            <div class="avatar" aria-hidden="true">
+                <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true">
+                    <path d="M20 21a8 8 0 0 0-16 0"/>
+                    <circle cx="12" cy="7" r="4"/>
+                </svg>
+            </div>
+            <div class="user-name"><c:out value="${sidebarNombre}"/></div>
+            <div class="user-role"><c:out value="${sidebarRol}"/></div>
         </div>
 
         <nav>

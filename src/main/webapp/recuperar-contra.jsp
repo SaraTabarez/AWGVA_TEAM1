@@ -30,7 +30,6 @@
                         <div class="email-box text-center mb-4"><c:out value="${correoRecuperacion}"/></div>
                         <form action="${ctx}/reset-password" method="post" id="code-form">
                             <input type="hidden" name="csrfToken" value="<c:out value='${sessionScope.csrfToken}'/>">
-                            <input type="hidden" name="action" value="validar">
                             <input type="hidden" name="codigo" id="codigo">
                             <div class="d-flex flex-wrap justify-content-center gap-2 mb-4" id="code-boxes">
                                 <input class="code-input" inputmode="numeric" maxlength="1" aria-label="Dígito 1" required>
@@ -42,7 +41,7 @@
                             </div>
                             <div class="row g-2">
                                 <div class="col-12 col-md-6"><button class="btn btn-navy w-100" type="submit" name="action" value="cancelar" formnovalidate>Regresar</button></div>
-                                <div class="col-12 col-md-6"><button class="btn btn-orange w-100" type="submit"><i class="bi bi-shield-check me-2"></i>Confirmar código</button></div>
+                                <div class="col-12 col-md-6"><button class="btn btn-orange w-100" type="submit" name="action" value="validar"><i class="bi bi-shield-check me-2"></i>Confirmar código</button></div>
                             </div>
                         </form>
                         <form action="${ctx}/reset-password" method="post" class="text-center mt-3">

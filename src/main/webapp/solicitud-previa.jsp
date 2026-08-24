@@ -89,7 +89,7 @@
   </style>
 </head>
 <body>
-<jsp:include page="Layout/sidebar.jsp"/>
+<jsp:include page="/Layout/sidebar.jsp"/>
 <div class="shell"><article class="paper">
   <c:if test="${not empty error}"><div class="alert"><c:out value="${error}"/></div></c:if>
   <div class="doc-head"><h1>SOLICITUD DE VISITAS ACADÉMICAS</h1><span class="logo">UTEZ</span></div>
@@ -113,7 +113,21 @@
     <div>Área solicitante</div><div><c:out value="${divisionDocente}"/></div>
     <div>Docente responsable</div><div><c:out value="${solicitud.solicitanteNombre}"/></div>
     <div>Teléfono del solicitante</div><div><c:out value="${solicitud.solicitanteTelefono}"/></div>
-    <div>Docentes acompañantes</div><div><c:out value="${solicitud.docentesAcompanantes}"/></div>
+    <div>Docentes acompañantes</div>
+    <div>
+      <c:choose>
+        <c:when test="${empty solicitud.nombresDocentesAcompanantes}">
+          <c:out value="${solicitud.docentesAcompanantes}"/>
+        </c:when>
+        <c:otherwise>
+          <strong><c:out value="${solicitud.docentesAcompanantes}"/></strong>
+          <span> · </span>
+          <c:forEach var="nombreAcompanante" items="${solicitud.nombresDocentesAcompanantes}" varStatus="estadoNombre">
+            <c:out value="${nombreAcompanante}"/><c:if test="${!estadoNombre.last}">, </c:if>
+          </c:forEach>
+        </c:otherwise>
+      </c:choose>
+    </div>
   </div>
   <table>
     <thead>

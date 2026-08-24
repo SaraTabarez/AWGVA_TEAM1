@@ -37,12 +37,33 @@ public final class CatalogoCarreras {
     }
 
     public static List<String> deDivision(String division) {
-        return CARRERAS.getOrDefault(normalizar(division), List.of());
+        return CARRERAS.getOrDefault(codigoDivision(division), List.of());
     }
 
     public static boolean pertenece(String division, String carrera) {
         if (carrera == null) return false;
         return deDivision(division).stream().anyMatch(item -> item.equalsIgnoreCase(carrera.trim()));
+    }
+
+    /**
+     * Devuelve siempre la clave institucional de la división. Acepta tanto DATID/DAMI/DATEFI/DACEA
+     * como las descripciones largas que puedan venir de Oracle o de una cuenta creada manualmente.
+     */
+    public static String codigoDivision(String valor) {
+        String normalizado = normalizar(valor);
+        if (normalizado.isBlank()) return "";
+
+        if (normalizado.equals("DATID") || normalizado.contains("DATID")
+                || normalizado.contains("TECNOLOGIAS DE LA INFORMACION")) return "DATID";
+        if (normalizado.equals("DAMI") || normalizado.contains("DAMI")
+                || normalizado.contains("MANTENIMIENTO E INGENIERIA INDUSTRIAL")) return "DAMI";
+        if (normalizado.equals("DATEFI") || normalizado.contains("DATEFI")
+                || normalizado.contains("TERAPIA FISICA")) return "DATEFI";
+        if (normalizado.equals("DACEA") || normalizado.contains("DACEA")
+                || normalizado.contains("ECONOMICO-ADMINISTRATIVA")
+                || normalizado.contains("ECONOMICO ADMINISTRATIVA")) return "DACEA";
+
+        return normalizado;
     }
 
     private static String normalizar(String valor) {
